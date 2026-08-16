@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Users, UserPlus, Download, FileText, Search } from 'lucide-react';
+import { Users, UserPlus, Download, FileText, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';

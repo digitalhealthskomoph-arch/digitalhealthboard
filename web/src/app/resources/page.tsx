@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Link as LinkIcon, Plus, ExternalLink, Edit2, Trash2, Folder, LayoutDashboard, Database } from 'lucide-react';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
