@@ -58,10 +58,10 @@ export default async function ResourcesPage() {
         </div>
         
         <div className="mt-4 sm:mt-0">
-          <button className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors">
+          <Link href="/resources/new" className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" />
             เพิ่มแหล่งข้อมูล
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -70,10 +70,10 @@ export default async function ResourcesPage() {
           <LinkIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">ยังไม่มีแหล่งข้อมูลในระบบ</h3>
           <p className="text-gray-500 mt-1">เพิ่มลิงก์แดชบอร์ดกระทรวง หรือเว็บไซต์ที่เกี่ยวข้องเพื่อรวบรวมไว้ที่นี่</p>
-          <button className="mt-6 inline-flex items-center gap-2 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 text-sm font-medium transition-colors">
+          <Link href="/resources/new" className="mt-6 inline-flex items-center gap-2 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" />
             เพิ่มแหล่งข้อมูลแรก
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-8">

@@ -46,10 +46,10 @@ export default async function MembersPage() {
             <FileText className="w-4 h-4" />
             คำสั่งแต่งตั้ง
           </button>
-          <button className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors">
+          <Link href="/members/new" className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors">
             <UserPlus className="w-4 h-4" />
             เพิ่มกรรมการ
-          </button>
+          </Link>
         </div>
       </div>
 
