@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Target, Plus, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,10 +40,10 @@ export default async function StrategiesPage() {
         </div>
         
         <div className="mt-4 sm:mt-0">
-          <button className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
+          <Link href="/strategies/new" className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" />
             เพิ่มแผนยุทธศาสตร์
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -66,10 +67,10 @@ export default async function StrategiesPage() {
           <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">ยังไม่มีข้อมูลแผนยุทธศาสตร์</h3>
           <p className="text-gray-500 mt-1">เริ่มต้นสร้างแผนยุทธศาสตร์ใหม่เพื่อกำหนดทิศทางและตัวชี้วัด</p>
-          <button className="mt-6 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors">
+          <Link href="/strategies/new" className="mt-6 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" />
             เพิ่มแผนยุทธศาสตร์แรก
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-6">
@@ -101,9 +102,9 @@ export default async function StrategiesPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">ตัวชี้วัด (KPIs)</h3>
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                  <Link href={`/kpis/new?strategy_id=${strategy.id}`} className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
                     <Plus className="w-4 h-4" /> เพิ่มตัวชี้วัด
-                  </button>
+                  </Link>
                 </div>
                 
                 {(!strategy.kpis || strategy.kpis.length === 0) ? (
