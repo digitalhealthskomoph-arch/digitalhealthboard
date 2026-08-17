@@ -329,28 +329,51 @@ export default function TabStrategies({ planData }: { planData: any }) {
                           </div>
                           
                           <div className="p-4 bg-white">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                              {objKpis.map(kpi => (
-                                <div key={kpi.id} className="border border-gray-100 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50/50 flex justify-between items-start">
-                                  <div>
-                                    <div className="text-xs text-gray-400 mb-1">{kpi.readiness_status || 'ไม่ระบุสถานะ'}</div>
-                                    <div className="font-medium text-sm text-gray-900">{kpi.name}</div>
-                                  </div>
-                                  <button 
-                                    onClick={() => {
-                                      setEditingKpiId(kpi.id);
-                                      setTargetStratId(strat.id);
-                                      setTargetObjId(obj.id);
-                                      setKpiModalOpen(true);
-                                    }}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md"
-                                    title="ดู/แก้ไข Data Dictionary"
-                                  >
-                                    <FileSearch className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                            {objKpis.length > 0 && (
+                              <div className="overflow-x-auto mb-3">
+                                <table className="w-full text-sm text-left border-collapse">
+                                  <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 min-w-[200px]">ชื่อตัวชี้วัด</th>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">สถานะ</th>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2570</th>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2571</th>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2572</th>
+                                      <th className="px-4 py-2 font-semibold text-gray-700 w-16 text-center">จัดการ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {objKpis.map(kpi => (
+                                      <tr key={kpi.id} className="border-b hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-4 py-3 text-gray-900">{kpi.name}</td>
+                                        <td className="px-4 py-3 text-center">
+                                          <span className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-full ${kpi.readiness_status === 'พร้อมวัด' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            {kpi.readiness_status || 'ไม่ระบุ'}
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2570 || '-'}</td>
+                                        <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2571 || '-'}</td>
+                                        <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2572 || '-'}</td>
+                                        <td className="px-4 py-3 text-center">
+                                          <button 
+                                            onClick={() => {
+                                              setEditingKpiId(kpi.id);
+                                              setTargetStratId(strat.id);
+                                              setTargetObjId(obj.id);
+                                              setKpiModalOpen(true);
+                                            }}
+                                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md mx-auto block"
+                                            title="ดู/แก้ไข Data Dictionary"
+                                          >
+                                            <FileSearch className="w-4 h-4" />
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                             
                             <button 
                               onClick={() => {
@@ -372,23 +395,48 @@ export default function TabStrategies({ planData }: { planData: any }) {
                     {kpis.filter(k => k.strategy_id === strat.id && !k.objective_id).length > 0 && (
                       <div className="border border-gray-200 border-dashed rounded-lg p-4 bg-gray-50">
                         <h4 className="text-sm font-bold text-gray-500 mb-3">ตัวชี้วัดที่ยังไม่ได้ผูกกับเป้าประสงค์</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {kpis.filter(k => k.strategy_id === strat.id && !k.objective_id).map(kpi => (
-                            <div key={kpi.id} className="border border-gray-200 rounded-lg p-3 bg-white flex justify-between items-start">
-                              <div className="font-medium text-sm text-gray-700">{kpi.name}</div>
-                              <button 
-                                onClick={() => {
-                                  setEditingKpiId(kpi.id);
-                                  setTargetStratId(strat.id);
-                                  setTargetObjId(null);
-                                  setKpiModalOpen(true);
-                                }}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left border-collapse bg-white rounded-lg overflow-hidden border border-gray-200">
+                            <thead className="bg-gray-100 border-b">
+                              <tr>
+                                <th className="px-4 py-2 font-semibold text-gray-700 min-w-[200px]">ชื่อตัวชี้วัด</th>
+                                <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">สถานะ</th>
+                                <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2570</th>
+                                <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2571</th>
+                                <th className="px-4 py-2 font-semibold text-gray-700 w-24 text-center">เป้า 2572</th>
+                                <th className="px-4 py-2 font-semibold text-gray-700 w-16 text-center">แก้ไข</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {kpis.filter(k => k.strategy_id === strat.id && !k.objective_id).map(kpi => (
+                                <tr key={kpi.id} className="border-b hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3 text-gray-900">{kpi.name}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-full ${kpi.readiness_status === 'พร้อมวัด' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                      {kpi.readiness_status || 'ไม่ระบุ'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2570 || '-'}</td>
+                                  <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2571 || '-'}</td>
+                                  <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2572 || '-'}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <button 
+                                      onClick={() => {
+                                        setEditingKpiId(kpi.id);
+                                        setTargetStratId(strat.id);
+                                        setTargetObjId(null);
+                                        setKpiModalOpen(true);
+                                      }}
+                                      className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md mx-auto block"
+                                      title="แก้ไข"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
