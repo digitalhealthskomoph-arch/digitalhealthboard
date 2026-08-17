@@ -14,7 +14,8 @@ export default function TabStrategies({ planData }: { planData: any }) {
   
   // Strategy Edit State
   const [editingStrat, setEditingStrat] = useState<string | null>(null);
-  const [stratForm, setStratForm] = useState<{ definition: string[], measures: string[] }>({ definition: [], measures: [] });
+  const [stratForm, setStratForm] = useState<{ id?: string, name: string, definition: string[], measures: string[] }>({ name: '', definition: [], measures: [] });
+  const [showAddStrat, setShowAddStrat] = useState(false);
 
   // Objective Add/Edit State
   const [objForm, setObjForm] = useState({ id: '', strategy_id: '', name: '', description: '' });
@@ -65,18 +66,30 @@ export default function TabStrategies({ planData }: { planData: any }) {
   // Strategy Handlers
   const startEditStrat = (strat: any) => {
     setStratForm({
+      name: strat.name || '',
       definition: strat.definition || [],
       measures: strat.measures || []
     });
     setEditingStrat(strat.id);
   };
 
-  const saveStrat = async (id: string) => {
+  const saveStrat = async (id?: string) => {
+    if (!stratForm.name) return alert('กรุณาระบุชื่อยุทธศาสตร์');
     try {
-      await supabase.from('strategies').update({
-        definition: stratForm.definition,
-        measures: stratForm.measures
-      }).eq('id', id);
+      if (id) {
+        await supabase.from('strategies').update({
+          name: stratForm.name,
+          definition: stratForm.definition,
+          measures: stratForm.measures
+        }).eq('id', id);
+      } else {
+        await supabase.from('strategies').insert([{
+          name: stratForm.name,
+          definition: stratForm.definition,
+          measures: stratForm.measures
+        }]);
+        setShowAddStrat(false);
+      }
       setEditingStrat(null);
       fetchData();
     } catch(err) {
@@ -122,7 +135,36 @@ export default function TabStrategies({ planData }: { planData: any }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b pb-4 mb-4">
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 4 ยุทธศาสตร์ & ตัวชี้วัด (KPIs)</h2>
+        <button 
+          onClick={() => {
+            setStratForm({ name: '', definition: [], measures: [] });
+            setShowAddStrat(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          เพิ่มยุทธศาสตร์
+        </button>
       </div>
+
+      {showAddStrat && (
+        <div className="border border-blue-200 rounded-xl bg-blue-50 p-5 mb-6 shadow-sm relative">
+          <h3 className="font-bold text-blue-900 mb-4">เพิ่มยุทธศาสตร์ใหม่</h3>
+          <div className="mb-4">
+            <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
+            <input 
+              value={stratForm.name} 
+              onChange={e => setStratForm({...stratForm, name: e.target.value})} 
+              className="w-full border-gray-300 rounded p-2 text-sm"
+              placeholder="ระบุชื่อยุทธศาสตร์..."
+            />
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <button onClick={() => setShowAddStrat(false)} className="px-3 py-1.5 text-sm border rounded bg-white hover:bg-gray-50">ยกเลิก</button>
+            <button onClick={() => saveStrat()} className="px-3 py-1.5 text-sm text-white bg-blue-600 rounded">บันทึก</button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {strategies.map(strat => {
@@ -160,6 +202,15 @@ export default function TabStrategies({ planData }: { planData: any }) {
                           </div>
                         </div>
                         
+                        <div className="mb-4">
+                          <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
+                          <input 
+                            value={stratForm.name} 
+                            onChange={e => setStratForm({...stratForm, name: e.target.value})} 
+                            className="w-full border-gray-300 rounded p-2 text-sm"
+                          />
+                        </div>
+
                         <div>
                           <label className="text-sm font-bold block mb-1">นิยามยุทธศาสตร์และความเชื่อมโยง</label>
                           {stratForm.definition.map((def: string, i: number) => (
