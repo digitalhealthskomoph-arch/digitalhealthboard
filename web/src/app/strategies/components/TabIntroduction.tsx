@@ -7,6 +7,7 @@ import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 export default function TabIntroduction({ planData, onUpdate }: { planData: any, onUpdate: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
+    title: planData?.title || '',
     rationale: planData?.rationale || '',
     alignment: planData?.alignment || '',
     scope: planData?.scope || []
@@ -19,6 +20,7 @@ export default function TabIntroduction({ planData, onUpdate }: { planData: any,
       const { error } = await supabase
         .from('strategic_plans')
         .update({
+          title: formData.title,
           rationale: formData.rationale,
           alignment: formData.alignment,
           scope: formData.scope
@@ -65,6 +67,17 @@ export default function TabIntroduction({ planData, onUpdate }: { planData: any,
               <Save className="w-4 h-4" /> {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-2">ชื่อเล่ม/ชื่อแผน</label>
+          <input
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 mb-6 font-medium text-gray-900"
+            placeholder="ระบุชื่อเล่ม..."
+          />
         </div>
 
         <div>
@@ -124,6 +137,12 @@ export default function TabIntroduction({ planData, onUpdate }: { planData: any,
       >
         <Edit2 className="w-5 h-5" />
       </button>
+
+      <div>
+        <h3 className="text-xl md:text-2xl font-bold text-gray-900 text-center mb-10 border-b pb-4">
+          {planData?.title || 'ยังไม่ระบุชื่อ'}
+        </h3>
+      </div>
 
       <div>
         <h3 className="text-lg font-bold text-gray-900 border-l-4 border-blue-600 pl-3 mb-3">1.1 หลักการและเหตุผล</h3>

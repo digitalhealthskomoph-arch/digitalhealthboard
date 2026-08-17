@@ -62,7 +62,7 @@ export default function StrategicBookPage() {
         actionPlans: apRes.data || []
       });
       
-      exportToWord(html, 'เล่มแผนยุทธศาสตร์สุขภาพดิจิทัล');
+      exportToWord(html, planData?.title || 'Document');
     } catch (err) {
       console.error(err);
       alert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Word');
@@ -70,7 +70,7 @@ export default function StrategicBookPage() {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-gray-500">กำลังโหลดเล่มยุทธศาสตร์...</div>;
+    return <div className="p-12 text-center text-gray-500">กำลังโหลดข้อมูล...</div>;
   }
 
   const tabs = [
@@ -85,8 +85,8 @@ export default function StrategicBookPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">เล่มแผนยุทธศาสตร์</h1>
-          <p className="text-gray-500 mt-1">จัดการเนื้อหาแผนยุทธศาสตร์สุขภาพดิจิทัล</p>
+          <h1 className="text-2xl font-bold text-gray-900">{planData?.title || 'จัดการแผนยุทธศาสตร์'}</h1>
+          <p className="text-gray-500 mt-1">จัดการเนื้อหาทั้งหมดในเล่ม</p>
         </div>
         <button 
           onClick={handleExportWord}

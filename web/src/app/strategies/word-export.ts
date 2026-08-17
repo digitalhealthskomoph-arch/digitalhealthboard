@@ -30,7 +30,7 @@ export function buildStrategicPlanHTML(data: {
 }) {
   const { plan, strategies, objectives, kpis, actionPlans } = data;
 
-  const title = plan?.title || 'แผนยุทธศาสตร์สุขภาพดิจิทัล';
+  const title = plan?.title || 'ไม่ระบุชื่อ';
 
   // Helper for rendering lists
   const renderList = (arr: any[]) => {
