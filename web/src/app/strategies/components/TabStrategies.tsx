@@ -14,7 +14,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
   
   // Strategy Edit State
   const [editingStrat, setEditingStrat] = useState<string | null>(null);
-  const [stratForm, setStratForm] = useState<{ id?: string, name: string, definition: string[], measures: string[] }>({ name: '', definition: [], measures: [] });
+  const [stratForm, setStratForm] = useState<{ id?: string, name: string, theme_color: string, definition: string[], measures: string[] }>({ name: '', theme_color: 'blue', definition: [], measures: [] });
   const [showAddStrat, setShowAddStrat] = useState(false);
 
   // Objective Add/Edit State
@@ -67,6 +67,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
   const startEditStrat = (strat: any) => {
     setStratForm({
       name: strat.name || '',
+      theme_color: strat.theme_color || 'blue',
       definition: strat.definition || [],
       measures: strat.measures || []
     });
@@ -79,12 +80,14 @@ export default function TabStrategies({ planData }: { planData: any }) {
       if (id) {
         await supabase.from('strategies').update({
           name: stratForm.name,
+          theme_color: stratForm.theme_color,
           definition: stratForm.definition,
           measures: stratForm.measures
         }).eq('id', id);
       } else {
         await supabase.from('strategies').insert([{
           name: stratForm.name,
+          theme_color: stratForm.theme_color,
           definition: stratForm.definition,
           measures: stratForm.measures
         }]);
@@ -137,7 +140,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 4 ยุทธศาสตร์ & ตัวชี้วัด (KPIs)</h2>
         <button 
           onClick={() => {
-            setStratForm({ name: '', definition: [], measures: [] });
+            setStratForm({ name: '', theme_color: 'blue', definition: [], measures: [] });
             setShowAddStrat(true);
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2"
@@ -150,14 +153,31 @@ export default function TabStrategies({ planData }: { planData: any }) {
       {showAddStrat && (
         <div className="border border-blue-200 rounded-xl bg-blue-50 p-5 mb-6 shadow-sm relative">
           <h3 className="font-bold text-blue-900 mb-4">เพิ่มยุทธศาสตร์ใหม่</h3>
-          <div className="mb-4">
-            <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
-            <input 
-              value={stratForm.name} 
-              onChange={e => setStratForm({...stratForm, name: e.target.value})} 
-              className="w-full border-gray-300 rounded p-2 text-sm"
-              placeholder="ระบุชื่อยุทธศาสตร์..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
+              <input 
+                value={stratForm.name} 
+                onChange={e => setStratForm({...stratForm, name: e.target.value})} 
+                className="w-full border-gray-300 rounded p-2 text-sm"
+                placeholder="ระบุชื่อยุทธศาสตร์..."
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold block mb-1">ธีมสีของยุทธศาสตร์</label>
+              <select 
+                value={stratForm.theme_color} 
+                onChange={e => setStratForm({...stratForm, theme_color: e.target.value})} 
+                className="w-full border-gray-300 rounded p-2 text-sm"
+              >
+                <option value="blue">สีฟ้า (Blue)</option>
+                <option value="emerald">สีเขียว (Emerald)</option>
+                <option value="purple">สีม่วง (Purple)</option>
+                <option value="rose">สีชมพู (Rose)</option>
+                <option value="amber">สีส้มเหลือง (Amber)</option>
+                <option value="cyan">สีคราม (Cyan)</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-2 justify-end mt-4">
             <button onClick={() => setShowAddStrat(false)} className="px-3 py-1.5 text-sm border rounded bg-white hover:bg-gray-50">ยกเลิก</button>
@@ -170,17 +190,29 @@ export default function TabStrategies({ planData }: { planData: any }) {
         {strategies.map(strat => {
           const isExpanded = expandedStrats.includes(strat.id);
           const stratObjs = objectives.filter(o => o.strategy_id === strat.id);
+          const theme = strat.theme_color || 'blue';
+          
+          const themeColors: Record<string, { bg: string, headerBg: string, text: string, objBorder: string, objBg: string, objText: string }> = {
+            blue: { bg: 'bg-blue-50/50', headerBg: 'bg-blue-50', text: 'text-blue-900', objBorder: 'border-blue-200', objBg: 'bg-blue-50', objText: 'text-blue-600' },
+            emerald: { bg: 'bg-emerald-50/50', headerBg: 'bg-emerald-50', text: 'text-emerald-900', objBorder: 'border-emerald-200', objBg: 'bg-emerald-50', objText: 'text-emerald-600' },
+            purple: { bg: 'bg-purple-50/50', headerBg: 'bg-purple-50', text: 'text-purple-900', objBorder: 'border-purple-200', objBg: 'bg-purple-50', objText: 'text-purple-600' },
+            rose: { bg: 'bg-rose-50/50', headerBg: 'bg-rose-50', text: 'text-rose-900', objBorder: 'border-rose-200', objBg: 'bg-rose-50', objText: 'text-rose-600' },
+            amber: { bg: 'bg-amber-50/50', headerBg: 'bg-amber-50', text: 'text-amber-900', objBorder: 'border-amber-200', objBg: 'bg-amber-50', objText: 'text-amber-600' },
+            cyan: { bg: 'bg-cyan-50/50', headerBg: 'bg-cyan-50', text: 'text-cyan-900', objBorder: 'border-cyan-200', objBg: 'bg-cyan-50', objText: 'text-cyan-600' }
+          };
+          
+          const currentTheme = themeColors[theme] || themeColors.blue;
           
           return (
             <div key={strat.id} className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
               {/* Header */}
               <div 
-                className="bg-gray-50 px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                className={`${currentTheme.headerBg} px-5 py-4 flex items-center justify-between cursor-pointer hover:brightness-95 transition-colors`}
                 onClick={() => toggleExpand(strat.id)}
               >
                 <div className="flex items-center gap-3">
-                  {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                  <h3 className="font-bold text-lg text-blue-900">{strat.name}</h3>
+                  {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronRight className="w-5 h-5 text-gray-500" />}
+                  <h3 className={`font-bold text-lg ${currentTheme.text}`}>{strat.name}</h3>
                 </div>
                 <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md text-gray-500 border">
                   {stratObjs.length} เป้าประสงค์
@@ -191,24 +223,41 @@ export default function TabStrategies({ planData }: { planData: any }) {
               {isExpanded && (
                 <div className="p-5 border-t border-gray-100">
                   {/* Strategy Details (Def & Measures) */}
-                  <div className="mb-6 bg-blue-50/50 rounded-lg p-5 border border-blue-100 relative">
+                  <div className={`mb-6 ${currentTheme.bg} rounded-lg p-5 border ${currentTheme.objBorder} relative`}>
                     {editingStrat === strat.id ? (
                       <div className="space-y-4">
                         <div className="flex justify-between items-center mb-4">
-                          <h4 className="font-bold text-blue-800">แก้ไขรายละเอียด</h4>
+                          <h4 className={`font-bold ${currentTheme.text}`}>แก้ไขรายละเอียด</h4>
                           <div className="flex gap-2">
                             <button onClick={() => setEditingStrat(null)} className="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"><X className="w-4 h-4 inline"/></button>
                             <button onClick={() => saveStrat(strat.id)} className="px-2 py-1 text-xs text-white bg-blue-600 rounded"><Save className="w-4 h-4 inline"/> บันทึก</button>
                           </div>
                         </div>
                         
-                        <div className="mb-4">
-                          <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
-                          <input 
-                            value={stratForm.name} 
-                            onChange={e => setStratForm({...stratForm, name: e.target.value})} 
-                            className="w-full border-gray-300 rounded p-2 text-sm"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
+                            <input 
+                              value={stratForm.name} 
+                              onChange={e => setStratForm({...stratForm, name: e.target.value})} 
+                              className="w-full border-gray-300 rounded p-2 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold block mb-1">ธีมสีของยุทธศาสตร์</label>
+                            <select 
+                              value={stratForm.theme_color} 
+                              onChange={e => setStratForm({...stratForm, theme_color: e.target.value})} 
+                              className="w-full border-gray-300 rounded p-2 text-sm"
+                            >
+                              <option value="blue">สีฟ้า (Blue)</option>
+                              <option value="emerald">สีเขียว (Emerald)</option>
+                              <option value="purple">สีม่วง (Purple)</option>
+                              <option value="rose">สีชมพู (Rose)</option>
+                              <option value="amber">สีส้มเหลือง (Amber)</option>
+                              <option value="cyan">สีคราม (Cyan)</option>
+                            </select>
+                          </div>
                         </div>
 
                         <div>
@@ -238,7 +287,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
                         <button onClick={() => startEditStrat(strat)} className="absolute top-3 right-3 text-gray-400 hover:text-blue-600"><Edit2 className="w-4 h-4"/></button>
                         <div className="grid md:grid-cols-2 gap-6">
                           <div>
-                            <h4 className="font-bold text-sm text-blue-800 mb-2">นิยามยุทธศาสตร์และความเชื่อมโยง</h4>
+                            <h4 className={`font-bold text-sm ${currentTheme.text} mb-2`}>นิยามยุทธศาสตร์และความเชื่อมโยง</h4>
                             {strat.definition?.length > 0 ? (
                               <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
                                 {strat.definition.map((d:string, i:number) => <li key={i}>{d}</li>)}
@@ -246,7 +295,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
                             ) : <p className="text-xs text-gray-400 italic">ยังไม่ระบุ</p>}
                           </div>
                           <div>
-                            <h4 className="font-bold text-sm text-blue-800 mb-2">มาตรการหลัก</h4>
+                            <h4 className={`font-bold text-sm ${currentTheme.text} mb-2`}>มาตรการหลัก</h4>
                             {strat.measures?.length > 0 ? (
                               <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
                                 {strat.measures.map((m:string, i:number) => <li key={i}>{m}</li>)}
@@ -263,16 +312,16 @@ export default function TabStrategies({ planData }: { planData: any }) {
                     {stratObjs.map(obj => {
                       const objKpis = kpis.filter(k => k.objective_id === obj.id);
                       return (
-                        <div key={obj.id} className="border border-orange-200 rounded-lg overflow-hidden">
-                          <div className="bg-orange-50 px-4 py-2 flex justify-between items-center border-b border-orange-100">
+                        <div key={obj.id} className={`border ${currentTheme.objBorder} rounded-lg overflow-hidden`}>
+                          <div className={`${currentTheme.objBg} px-4 py-2 flex justify-between items-center border-b ${currentTheme.objBorder}`}>
                             <div>
-                              <span className="text-xs font-bold text-orange-600 uppercase mr-2">เป้าประสงค์</span>
+                              <span className={`text-xs font-bold ${currentTheme.objText} uppercase mr-2`}>เป้าประสงค์</span>
                               <span className="font-bold text-gray-900 text-sm">{obj.name}</span>
                             </div>
                             <div className="flex gap-2">
                               <button 
                                 onClick={() => { setObjForm(obj); setShowObjForm(true); }}
-                                className="text-xs text-gray-500 hover:text-orange-600"
+                                className={`text-xs text-gray-500 hover:${currentTheme.objText}`}
                               >
                                 แก้ไขเป้าประสงค์
                               </button>
@@ -310,7 +359,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
                                 setTargetObjId(obj.id);
                                 setKpiModalOpen(true);
                               }}
-                              className="text-sm font-medium text-blue-600 flex items-center gap-1 hover:underline mt-2"
+                              className={`text-sm font-medium ${currentTheme.objText} flex items-center gap-1 hover:underline mt-2`}
                             >
                               <Plus className="w-4 h-4" /> เพิ่มตัวชี้วัดในเป้าประสงค์นี้
                             </button>
@@ -351,7 +400,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
                         setObjForm({ id: '', strategy_id: strat.id, name: '', description: '' });
                         setShowObjForm(true);
                       }}
-                      className="text-sm font-medium text-orange-600 flex items-center gap-1 hover:bg-orange-50 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-orange-200"
+                      className={`text-sm font-medium ${currentTheme.objText} flex items-center gap-1 hover:${currentTheme.objBg} px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:${currentTheme.objBorder}`}
                     >
                       <Plus className="w-4 h-4" /> เพิ่มเป้าประสงค์ใหม่
                     </button>
@@ -404,6 +453,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
           kpiId={editingKpiId} 
           strategyId={targetStratId}
           objectiveId={targetObjId}
+          objectives={objectives.filter(o => o.strategy_id === targetStratId)}
           onClose={() => { setKpiModalOpen(false); fetchData(); }} 
         />
       )}

@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Save, Trash2 } from 'lucide-react';
 
-export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }: { kpiId: string | null, strategyId: string, objectiveId: string | null, onClose: () => void }) {
+export default function KPIFormModal({ kpiId, strategyId, objectiveId, objectives = [], onClose }: { kpiId: string | null, strategyId: string, objectiveId: string | null, objectives?: any[], onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    objective_id: objectiveId || '',
     name: '',
     description: '',
     readiness_status: 'พร้อมวัด',
@@ -41,6 +42,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
       const { data } = await supabase.from('kpis').select('*').eq('id', kpiId).single();
       if (data) {
         setFormData({
+          objective_id: data.objective_id || objectiveId || '',
           name: data.name || '',
           description: data.description || '',
           readiness_status: data.readiness_status || 'พร้อมวัด',
@@ -73,7 +75,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
       const payload = {
         ...formData,
         strategy_id: strategyId,
-        objective_id: objectiveId
+        objective_id: formData.objective_id || null
       };
       
       if (kpiId) {
@@ -122,23 +124,32 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
               <h3 className="text-lg font-bold border-b pb-2 mb-4 text-blue-900">1. ข้อมูลทั่วไป</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เป้าประสงค์ (ผูกตัวชี้วัดเข้ากับเป้าประสงค์)</label>
+                  <select name="objective_id" value={formData.objective_id} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <option value="">-- ไม่ระบุ / ไม่ผูกกับเป้าประสงค์ --</option>
+                    {objectives.map(obj => (
+                      <option key={obj.id} value={obj.id}>{obj.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อตัวชี้วัด</label>
-                  <input name="name" value={formData.name} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">สถานะความพร้อมวัด</label>
-                  <select name="readiness_status" value={formData.readiness_status} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm">
+                  <select name="readiness_status" value={formData.readiness_status} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
                     <option value="พร้อมวัด">พร้อมวัด</option>
                     <option value="สร้างใหม่">สร้างใหม่</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับผิดชอบ</label>
-                  <input name="responsible_person" value={formData.responsible_person} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="responsible_person" value={formData.responsible_person} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">นิยามเชิงปฏิบัติการ (Operational Definition)</label>
-                  <textarea name="op_definition" rows={3} value={formData.op_definition} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <textarea name="op_definition" rows={3} value={formData.op_definition} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
               </div>
             </section>
@@ -149,24 +160,24 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">สูตรคำนวณ (Calculation Formula)</label>
-                  <input name="calc_formula" value={formData.calc_formula} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" placeholder="เช่น (A / B) * 100" />
+                  <input name="calc_formula" value={formData.calc_formula} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="เช่น (A / B) * 100" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ตัวตั้ง (Numerator)</label>
-                    <textarea name="numerator" rows={2} value={formData.numerator} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                    <textarea name="numerator" rows={2} value={formData.numerator} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ตัวหาร (Denominator)</label>
-                    <textarea name="denominator" rows={2} value={formData.denominator} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                    <textarea name="denominator" rows={2} value={formData.denominator} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">เกณฑ์นับเข้า (Inclusion Criteria)</label>
-                    <textarea name="inclusion_criteria" rows={2} value={formData.inclusion_criteria} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                    <textarea name="inclusion_criteria" rows={2} value={formData.inclusion_criteria} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">เกณฑ์นับออก (Exclusion Criteria)</label>
-                    <textarea name="exclusion_criteria" rows={2} value={formData.exclusion_criteria} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                    <textarea name="exclusion_criteria" rows={2} value={formData.exclusion_criteria} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                   </div>
                 </div>
               </div>
@@ -178,19 +189,19 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">แหล่งข้อมูล (Data Source)</label>
-                  <input name="data_source" value={formData.data_source} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="data_source" value={formData.data_source} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">วิธีดึงข้อมูล (Extraction Method)</label>
-                  <input name="extraction_method" value={formData.extraction_method} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="extraction_method" value={formData.extraction_method} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ความถี่การวัด (Frequency)</label>
-                  <input name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" placeholder="เช่น รายเดือน, รายไตรมาส" />
+                  <input name="frequency" value={formData.frequency} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="เช่น รายเดือน, รายไตรมาส" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">วันตัดข้อมูล (Cut-off Date)</label>
-                  <input name="cutoff_date" value={formData.cutoff_date} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" placeholder="เช่น ทุกวันที่ 5 ของเดือนถัดไป" />
+                  <input name="cutoff_date" value={formData.cutoff_date} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="เช่น ทุกวันที่ 5 ของเดือนถัดไป" />
                 </div>
               </div>
             </section>
@@ -201,33 +212,33 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, onClose }
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">เป้าปี 2570</label>
-                  <input name="target_2570" value={formData.target_2570} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="target_2570" value={formData.target_2570} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">เป้าปี 2571</label>
-                  <input name="target_2571" value={formData.target_2571} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="target_2571" value={formData.target_2571} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">เป้าปี 2572</label>
-                  <input name="target_2572" value={formData.target_2572} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <input name="target_2572" value={formData.target_2572} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผล (Reason)</label>
-                  <textarea name="reason" rows={2} value={formData.reason} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <textarea name="reason" rows={2} value={formData.reason} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ข้อควรระวัง (Precautions)</label>
-                  <textarea name="precautions" rows={2} value={formData.precautions} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <textarea name="precautions" rows={2} value={formData.precautions} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ความเสี่ยงตัวเลขบิดเบือน</label>
-                  <textarea name="risk_distortion" rows={2} value={formData.risk_distortion} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <textarea name="risk_distortion" rows={2} value={formData.risk_distortion} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">สิ่งที่ต้องทำก่อนจึงจะวัดได้ (Prerequisites)</label>
-                  <textarea name="prerequisites" rows={2} value={formData.prerequisites} onChange={handleChange} className="w-full border-gray-300 rounded-lg text-sm" />
+                  <textarea name="prerequisites" rows={2} value={formData.prerequisites} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
               </div>
             </section>
