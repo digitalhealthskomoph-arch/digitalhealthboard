@@ -1,148 +1,132 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Target, Plus, AlertCircle, Edit2, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { BookOpen, FileText, Target, ListTodo, Presentation, Download } from 'lucide-react';
+import TabIntroduction from './components/TabIntroduction';
+import TabSituation from './components/TabSituation';
+import TabVision from './components/TabVision';
+import TabStrategies from './components/TabStrategies';
+import TabActionPlan from './components/TabActionPlan';
+import { exportToWord, buildStrategicPlanHTML } from './word-export';
 
-export const dynamic = 'force-dynamic';
+export default function StrategicBookPage() {
+  const [activeTab, setActiveTab] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [planData, setPlanData] = useState<any>(null);
 
-export default async function StrategiesPage() {
-  // Fetch strategies with nested KPIs
-  // Because we are using placeholders for env vars, this might fail or return nothing.
-  // We'll wrap it in a try-catch for robustness in this mock stage.
-  
-  let strategies: any[] = [];
-  let errorMsg = null;
-  
-  try {
-    const { data, error } = await supabase
-      .from('strategies')
-      .select(`
-        *,
-        kpis (*)
-      `)
-      .order('year_start', { ascending: true });
+  useEffect(() => {
+    fetchPlan();
+  }, []);
+
+  const fetchPlan = async () => {
+    setLoading(true);
+    try {
+      let { data, error } = await supabase
+        .from('strategic_plans')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error && error.code === 'PGRST116') { // No rows found
+        const { data: newData } = await supabase
+          .from('strategic_plans')
+          .insert([{ title: 'ร่างแผนยุทธศาสตร์สุขภาพดิจิทัล' }])
+          .select()
+          .single();
+        data = newData;
+      }
       
-    if (error) throw error;
-    strategies = data || [];
-  } catch (err: any) {
-    console.error('Supabase fetch error:', err);
-    errorMsg = err.message || 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ โปรดตรวจสอบการตั้งค่า .env.local';
+      setPlanData(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportWord = async () => {
+    try {
+      const [stratRes, objRes, kpiRes, apRes] = await Promise.all([
+        supabase.from('strategies').select('*').order('name'),
+        supabase.from('objectives').select('*').order('created_at'),
+        supabase.from('kpis').select('*').order('created_at'),
+        supabase.from('action_plans').select('*').order('created_at')
+      ]);
+      
+      const html = buildStrategicPlanHTML({
+        plan: planData,
+        strategies: stratRes.data || [],
+        objectives: objRes.data || [],
+        kpis: kpiRes.data || [],
+        actionPlans: apRes.data || []
+      });
+      
+      exportToWord(html, 'เล่มแผนยุทธศาสตร์สุขภาพดิจิทัล');
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการส่งออกไฟล์ Word');
+    }
+  };
+
+  if (loading) {
+    return <div className="p-12 text-center text-gray-500">กำลังโหลดเล่มยุทธศาสตร์...</div>;
   }
 
+  const tabs = [
+    { id: 1, name: 'บทนำ', icon: BookOpen },
+    { id: 2, name: 'สถานการณ์', icon: Presentation },
+    { id: 3, name: 'วิสัยทัศน์', icon: Target },
+    { id: 4, name: 'ยุทธศาสตร์ & KPI', icon: FileText },
+    { id: 5, name: 'แผนปฏิบัติการ', icon: ListTodo },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Target className="w-6 h-6 text-blue-600" />
-            แผนยุทธศาสตร์สุขภาพดิจิทัล 3 ปี
-          </h1>
-          <p className="text-gray-500 mt-1">จัดการแผนยุทธศาสตร์และตัวชี้วัด (KPI Dictionary)</p>
+          <h1 className="text-2xl font-bold text-gray-900">เล่มแผนยุทธศาสตร์</h1>
+          <p className="text-gray-500 mt-1">จัดการเนื้อหาแผนยุทธศาสตร์สุขภาพดิจิทัล</p>
         </div>
-        
-        <div className="mt-4 sm:mt-0">
-          <Link href="/strategies/new" className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            เพิ่มแผนยุทธศาสตร์
-          </Link>
-        </div>
+        <button 
+          onClick={handleExportWord}
+          className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors border border-blue-200 shadow-sm"
+        >
+          <Download className="w-4 h-4" />
+          ส่งออกเป็น Word
+        </button>
       </div>
 
-      {errorMsg && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-          <div className="flex items-start">
-            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-            <div>
-              <h3 className="text-red-800 font-medium">ข้อผิดพลาดในการดึงข้อมูล</h3>
-              <p className="text-red-700 text-sm mt-1">{errorMsg}</p>
-              <p className="text-red-600 text-sm mt-2 font-medium">
-                คำแนะนำ: โปรดรันสคริปต์ supabase_schema.sql ใน Supabase และนำค่า URL, Anon Key มาใส่ในไฟล์ .env.local
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Tabs Navigation */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-wrap">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 min-w-[150px] py-4 px-4 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors ${
+                isActive 
+                  ? 'border-blue-600 text-blue-600 bg-blue-50/50' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              ส่วนที่ {tab.id} {tab.name}
+            </button>
+          )
+        })}
+      </div>
 
-      {!errorMsg && strategies.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
-          <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">ยังไม่มีข้อมูลแผนยุทธศาสตร์</h3>
-          <p className="text-gray-500 mt-1">เริ่มต้นสร้างแผนยุทธศาสตร์ใหม่เพื่อกำหนดทิศทางและตัวชี้วัด</p>
-          <Link href="/strategies/new" className="mt-6 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            เพิ่มแผนยุทธศาสตร์แรก
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {strategies.map((strategy) => (
-            <div key={strategy.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-lg font-bold text-gray-900">{strategy.name}</h2>
-                    <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-full font-medium">
-                      ปี {strategy.year_start} - {strategy.year_end}
-                    </span>
-                  </div>
-                  {strategy.description && (
-                    <p className="text-gray-600 text-sm mt-1">{strategy.description}</p>
-                  )}
-                </div>
-                
-                <div className="mt-4 sm:mt-0 flex items-center gap-2">
-                  <button className="p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-700 rounded-lg transition-colors" title="แก้ไข">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors" title="ลบ">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">ตัวชี้วัด (KPIs)</h3>
-                  <Link href={`/kpis/new?strategy_id=${strategy.id}`} className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                    <Plus className="w-4 h-4" /> เพิ่มตัวชี้วัด
-                  </Link>
-                </div>
-                
-                {(!strategy.kpis || strategy.kpis.length === 0) ? (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                    <p className="text-sm text-gray-500">ยังไม่มีตัวชี้วัดในยุทธศาสตร์นี้</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-gray-500 bg-gray-50 uppercase border-b border-gray-200">
-                        <tr>
-                          <th className="px-4 py-3 font-medium">ชื่อตัวชี้วัด</th>
-                          <th className="px-4 py-3 font-medium">เป้าหมาย</th>
-                          <th className="px-4 py-3 font-medium">หน่วยนับ</th>
-                          <th className="px-4 py-3 font-medium text-right">จัดการ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {strategy.kpis.map((kpi: any) => (
-                          <tr key={kpi.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium text-gray-900">{kpi.name}</td>
-                            <td className="px-4 py-3 text-gray-600">{kpi.target_value}</td>
-                            <td className="px-4 py-3 text-gray-600">{kpi.unit}</td>
-                            <td className="px-4 py-3 text-right">
-                              <button className="text-gray-400 hover:text-blue-600 mr-3">แก้ไข</button>
-                              <button className="text-gray-400 hover:text-red-600">ลบ</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Tab Content */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8 min-h-[500px]">
+        {activeTab === 1 && <TabIntroduction planData={planData} onUpdate={fetchPlan} />}
+        {activeTab === 2 && <TabSituation planData={planData} onUpdate={fetchPlan} />}
+        {activeTab === 3 && <TabVision planData={planData} onUpdate={fetchPlan} />}
+        {activeTab === 4 && <TabStrategies planData={planData} />}
+        {activeTab === 5 && <TabActionPlan planData={planData} />}
+      </div>
     </div>
   );
 }
