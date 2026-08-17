@@ -14,7 +14,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
   
   // Strategy Edit State
   const [editingStrat, setEditingStrat] = useState<string | null>(null);
-  const [stratForm, setStratForm] = useState({ definition: [], measures: [] });
+  const [stratForm, setStratForm] = useState<{ definition: string[], measures: string[] }>({ definition: [], measures: [] });
 
   // Objective Add/Edit State
   const [objForm, setObjForm] = useState({ id: '', strategy_id: '', name: '', description: '' });
