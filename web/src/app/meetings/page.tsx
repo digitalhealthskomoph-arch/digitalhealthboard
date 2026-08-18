@@ -194,7 +194,6 @@ export default function MeetingsPage() {
             </Link>
           ))}
         </div>
-        </div>
       )}
 
       {/* Edit Meeting Modal */}
