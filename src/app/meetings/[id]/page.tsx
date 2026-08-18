@@ -442,7 +442,10 @@ export default function MeetingDetailPage() {
               )}
             </div>
           ) : (
-            agendas.map((agenda, index) => (
+            agendas.map((agenda, index) => {
+              const isMainAgenda = !String(agenda.agenda_no).includes('.');
+              
+              return (
               <div key={agenda.id} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-start">
                   <div>
@@ -464,23 +467,25 @@ export default function MeetingDetailPage() {
                   </div>
                   {user && (
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setEditAgendaData({
-                            agenda_no: agenda.agenda_no || '',
-                            title: agenda.title || '',
-                            description: agenda.description || '',
-                            resolution_summary: agenda.resolution_summary || '',
-                            attachment_url: agenda.attachment_url || '',
-                            responsible_person: agenda.responsible_person || ''
-                          });
-                          setEditingAgendaId(agenda.id);
-                        }}
-                        className="text-gray-400 hover:text-blue-500"
-                        title="แก้ไขวาระ"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      {!isMainAgenda && (
+                        <button 
+                          onClick={() => {
+                            setEditAgendaData({
+                              agenda_no: agenda.agenda_no || '',
+                              title: agenda.title || '',
+                              description: agenda.description || '',
+                              resolution_summary: agenda.resolution_summary || '',
+                              attachment_url: agenda.attachment_url || '',
+                              responsible_person: agenda.responsible_person || ''
+                            });
+                            setEditingAgendaId(agenda.id);
+                          }}
+                          className="text-gray-400 hover:text-blue-500"
+                          title="แก้ไขวาระ"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => {
                           setNewAgenda({ ...newAgenda, agenda_no: `${agenda.agenda_no}.1` });
@@ -491,9 +496,11 @@ export default function MeetingDetailPage() {
                       >
                         <Plus className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500" title="ลบวาระ">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!isMainAgenda && (
+                        <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500" title="ลบวาระ">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -583,7 +590,7 @@ export default function MeetingDetailPage() {
                       </div>
                     </form>
                   </div>
-                ) : (
+                ) : !isMainAgenda ? (
                   <div className="p-4 bg-white space-y-4">
                     {/* แสดงมติ/สรุปการประชุม */}
                     {agenda.resolution_summary && (
@@ -596,107 +603,32 @@ export default function MeetingDetailPage() {
                     )}
 
                     {/* แสดงเอกสารแนบและผู้รับผิดชอบ */}
-                    <div className="flex flex-wrap gap-4 mt-2">
-                      {agenda.attachment_url && (
-                        <a 
-                          href={agenda.attachment_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          <FileText className="w-4 h-4" />
-                          เอกสารแนบ
-                        </a>
-                      )}
-                      {agenda.responsible_person && (
-                        <div className="inline-flex items-center gap-1.5 text-sm text-gray-600">
-                          <span className="font-semibold">ผู้รับผิดชอบ:</span>
-                          {agenda.responsible_person}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Resolutions section (legacy/optional) */}
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700">มติที่ประชุม</h4>
-                      {user && activeResolutionAgendaId !== agenda.id && (
-                        <button 
-                          onClick={() => {
-                            setActiveResolutionAgendaId(agenda.id);
-                            setNewResolution({ resolution_type: 'รับทราบ', detail: '' });
-                          }}
-                          className="text-xs text-blue-600 font-medium hover:text-blue-800 flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> บันทึกมติ
-                        </button>
-                      )}
-                    </div>
-
-                    {(!agenda.resolutions || agenda.resolutions.length === 0) && activeResolutionAgendaId !== agenda.id ? (
-                      <p className="text-sm text-gray-500 italic text-center py-3">ยังไม่ได้บันทึกมติสำหรับวาระนี้</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {agenda.resolutions?.map((res: any) => (
-                          <div key={res.id} className="flex items-start justify-between bg-blue-50/30 p-3 rounded-lg border border-blue-100">
-                            <div>
-                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${
-                                res.resolution_type === 'เห็นชอบ' ? 'bg-green-100 text-green-700' :
-                                res.resolution_type === 'ไม่เห็นชอบ' ? 'bg-red-100 text-red-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
-                                {res.resolution_type}
-                              </span>
-                              {res.detail && <p className="text-sm text-gray-700 mt-1">{res.detail}</p>}
-                            </div>
-                            {user && (
-                              <button onClick={() => deleteResolution(res.id)} className="text-gray-400 hover:text-red-500 p-1">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                    {(agenda.attachment_url || agenda.responsible_person) && (
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        {agenda.attachment_url && (
+                          <a 
+                            href={agenda.attachment_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <FileText className="w-4 h-4" />
+                            เอกสารแนบ
+                          </a>
+                        )}
+                        {agenda.responsible_person && (
+                          <div className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                            <span className="font-semibold">ผู้รับผิดชอบ:</span>
+                            {agenda.responsible_person}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
-
-                    {/* Add Resolution Form */}
-                    {activeResolutionAgendaId === agenda.id && (
-                      <form onSubmit={(e) => handleAddResolution(agenda.id, e)} className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="md:col-span-1">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">ประเภทมติ</label>
-                            <select
-                              value={newResolution.resolution_type}
-                              onChange={e => setNewResolution({...newResolution, resolution_type: e.target.value})}
-                              className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            >
-                              <option value="รับทราบ">รับทราบ</option>
-                              <option value="เห็นชอบ">เห็นชอบ</option>
-                              <option value="ไม่เห็นชอบ">ไม่เห็นชอบ</option>
-                              <option value="อนุมัติ">อนุมัติ</option>
-                              <option value="ไม่อนุมัติ">ไม่อนุมัติ</option>
-                            </select>
-                          </div>
-                          <div className="md:col-span-3">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">รายละเอียด (ถ้ามี)</label>
-                            <input
-                              type="text"
-                              value={newResolution.detail}
-                              onChange={e => setNewResolution({...newResolution, detail: e.target.value})}
-                              placeholder="เช่น เห็นชอบให้ดำเนินการตามเสนอ"
-                              className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-3">
-                          <button type="button" onClick={() => setActiveResolutionAgendaId(null)} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-100">ยกเลิก</button>
-                          <button type="submit" className="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700 font-medium">บันทึกมติ</button>
-                        </div>
-                      </form>
-                    )}
                   </div>
-                )}
+                ) : null}
               </div>
-            ))
+            );
+          })
           )}
 
           {/* Add Agenda Form Modal or Inline */}
