@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabActionPlan({ planData }: { planData: any }) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [actionPlans, setActionPlans] = useState<any[]>([]);
   const [strategies, setStrategies] = useState<any[]>([]);
@@ -117,7 +119,7 @@ export default function TabActionPlan({ planData }: { planData: any }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b pb-4 mb-4">
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 5 แผนปฏิบัติการประจำปี</h2>
-        {!showForm && (
+        {!showForm && user && (
           <button 
             onClick={() => setShowForm(true)} 
             className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 font-medium"
@@ -222,13 +224,13 @@ export default function TabActionPlan({ planData }: { planData: any }) {
               <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ผู้รับผิดชอบหลัก</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ไตรมาส</th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">งบประมาณ (บาท)</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
+              {user && <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {actionPlans.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500 italic">
+                <td colSpan={user ? 6 : 5} className="px-6 py-10 text-center text-sm text-gray-500 italic">
                   ยังไม่มีแผนปฏิบัติการ
                 </td>
               </tr>
@@ -248,10 +250,12 @@ export default function TabActionPlan({ planData }: { planData: any }) {
                   <td className="px-6 py-4 text-sm text-gray-900 text-right font-mono">
                     {Number(plan.budget).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleEdit(plan)} className="text-blue-600 hover:text-blue-900 mr-3">แก้ไข</button>
-                    <button onClick={() => handleDelete(plan.id)} className="text-red-600 hover:text-red-900">ลบ</button>
-                  </td>
+                  {user && (
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => handleEdit(plan)} className="text-blue-600 hover:text-blue-900 mr-3">แก้ไข</button>
+                      <button onClick={() => handleDelete(plan.id)} className="text-red-600 hover:text-red-900">ลบ</button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}

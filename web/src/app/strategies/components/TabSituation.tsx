@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabSituation({ planData, onUpdate }: { planData: any, onUpdate: () => void }) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     swot_s: planData?.swot_s || [],
@@ -126,9 +128,11 @@ export default function TabSituation({ planData, onUpdate }: { planData: any, on
       <div className="flex justify-between items-center border-b pb-3 mb-6">
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 2 การวิเคราะห์สถานการณ์</h2>
         {!isEditing ? (
-          <button onClick={() => setIsEditing(true)} className="px-3 py-1.5 text-sm text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 flex items-center gap-1">
-            <Edit2 className="w-4 h-4" /> แก้ไข SWOT
-          </button>
+          user ? (
+            <button onClick={() => setIsEditing(true)} className="px-3 py-1.5 text-sm text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 flex items-center gap-1">
+              <Edit2 className="w-4 h-4" /> แก้ไข SWOT
+            </button>
+          ) : null
         ) : (
           <div className="flex gap-2">
             <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-sm text-gray-600 border rounded-md hover:bg-gray-50 flex items-center gap-1">

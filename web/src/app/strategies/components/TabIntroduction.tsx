@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabIntroduction({ planData, onUpdate }: { planData: any, onUpdate: () => void }) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     title: planData?.title || '',
@@ -130,13 +132,15 @@ export default function TabIntroduction({ planData, onUpdate }: { planData: any,
 
   return (
     <div className="space-y-8 relative">
-      <button 
-        onClick={() => setIsEditing(true)}
-        className="absolute top-0 right-0 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        title="แก้ไขเนื้อหา"
-      >
-        <Edit2 className="w-5 h-5" />
-      </button>
+      {user && (
+        <button 
+          onClick={() => setIsEditing(true)}
+          className="absolute top-0 right-0 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          title="แก้ไขเนื้อหา"
+        >
+          <Edit2 className="w-5 h-5" />
+        </button>
+      )}
 
       <div>
         <h3 className="text-xl md:text-2xl font-bold text-gray-900 text-center mb-10 border-b pb-4">

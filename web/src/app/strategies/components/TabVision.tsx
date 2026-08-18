@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabVision({ planData, onUpdate }: { planData: any, onUpdate: () => void }) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     vision: planData?.vision || '',
@@ -117,13 +119,15 @@ export default function TabVision({ planData, onUpdate }: { planData: any, onUpd
     <div className="space-y-10 relative">
       <div className="flex justify-between items-center border-b pb-3 mb-6">
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 3 วิสัยทัศน์ และ พันธกิจ</h2>
-        <button 
-          onClick={() => setIsEditing(true)}
-          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="แก้ไขเนื้อหา"
-        >
-          <Edit2 className="w-5 h-5" />
-        </button>
+        {user && (
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="แก้ไขเนื้อหา"
+          >
+            <Edit2 className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-8 text-center shadow-sm">
