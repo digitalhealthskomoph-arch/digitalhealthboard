@@ -1,7 +1,44 @@
+"use client";
+
 import { Target, Users, Presentation, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
+  const [meetingNo, setMeetingNo] = useState('-');
+  const [memberCount, setMemberCount] = useState('-');
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      // Fetch latest meeting
+      const { data: meetings } = await supabase
+        .from('meetings')
+        .select('meeting_no')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (meetings && meetings.length > 0) {
+        setMeetingNo(meetings[0].meeting_no);
+      } else {
+        setMeetingNo('-');
+      }
+
+      // Fetch members count
+      const { count } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true });
+        
+      if (count !== null) {
+        setMemberCount(count.toString() + ' ท่าน');
+      } else {
+        setMemberCount('-');
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
@@ -34,7 +71,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">การประชุมครั้งล่าสุด</p>
-              <h3 className="text-2xl font-bold text-gray-900">2/2569</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{meetingNo}</h3>
             </div>
           </div>
           <Link href="/meetings" className="mt-auto text-sm text-emerald-600 font-medium hover:text-emerald-700 flex items-center">
@@ -50,7 +87,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">คณะกรรมการ</p>
-              <h3 className="text-2xl font-bold text-gray-900">15 ท่าน</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{memberCount}</h3>
             </div>
           </div>
           <Link href="/members" className="mt-auto text-sm text-purple-600 font-medium hover:text-purple-700 flex items-center">

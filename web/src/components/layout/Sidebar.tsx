@@ -3,7 +3,7 @@ import { LayoutDashboard, Target, Users, Presentation, Link as LinkIcon } from '
 
 const navigation = [
   { name: 'แดชบอร์ด', href: '/', icon: LayoutDashboard },
-  { name: 'แผนยุทธศาสตร์ 3 ปี', href: '/strategies', icon: Target },
+  { name: 'แผนสุขภาพดิจิทัล', href: '/strategies', icon: Target },
   { name: 'การประชุมคณะกรรมการ', href: '/meetings', icon: Presentation },
   { name: 'ข้อมูลคณะกรรมการ', href: '/members', icon: Users },
   { name: 'แหล่งข้อมูลและลิงก์', href: '/resources', icon: LinkIcon },

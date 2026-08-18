@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Plus, Edit2, ChevronDown, ChevronRight, FileSearch, Trash2, Save, X } from 'lucide-react';
 import KPIFormModal from './KPIFormModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabStrategies({ planData }: { planData: any }) {
+  const { user } = useAuth();
   const [strategies, setStrategies] = useState<any[]>([]);
   const [objectives, setObjectives] = useState<any[]>([]);
   const [kpis, setKpis] = useState<any[]>([]);
@@ -138,16 +140,18 @@ export default function TabStrategies({ planData }: { planData: any }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b pb-4 mb-4">
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 4 ยุทธศาสตร์ & ตัวชี้วัด (KPIs)</h2>
-        <button 
-          onClick={() => {
-            setStratForm({ name: '', theme_color: 'blue', definition: [], measures: [] });
-            setShowAddStrat(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          เพิ่มยุทธศาสตร์
-        </button>
+        {user && (
+          <button 
+            onClick={() => {
+              setStratForm({ name: '', theme_color: 'blue', definition: [], measures: [] });
+              setShowAddStrat(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            เพิ่มยุทธศาสตร์
+          </button>
+        )}
       </div>
 
       {showAddStrat && (
@@ -285,7 +289,15 @@ export default function TabStrategies({ planData }: { planData: any }) {
                       </div>
                     ) : (
                       <>
-                        <button onClick={() => startEditStrat(strat)} className="absolute top-3 right-3 text-gray-400 hover:text-blue-600"><Edit2 className="w-4 h-4"/></button>
+                        {user && (
+                          <button 
+                            onClick={() => startEditStrat(strat)}
+                            className={`absolute top-4 right-4 p-1.5 rounded bg-white border ${currentTheme.objBorder} hover:bg-gray-50 text-gray-500`}
+                            title="แก้ไขยุทธศาสตร์"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <div className="grid md:grid-cols-2 gap-6">
                           <div>
                             <h4 className={`font-bold text-sm ${currentTheme.text} mb-2`}>นิยามยุทธศาสตร์และความเชื่อมโยง</h4>
@@ -321,12 +333,17 @@ export default function TabStrategies({ planData }: { planData: any }) {
                               <span className="font-bold text-gray-900 text-sm">[{objCode}] {obj.name}</span>
                             </div>
                             <div className="flex gap-2">
-                              <button 
-                                onClick={() => { setObjForm(obj); setShowObjForm(true); }}
-                                className={`text-xs text-gray-500 hover:${currentTheme.objText}`}
-                              >
-                                แก้ไขเป้าประสงค์
-                              </button>
+                              {user && (
+                                <button 
+                                  onClick={() => {
+                                    setObjForm({ id: obj.id, strategy_id: strat.id, name: obj.name || '', description: obj.description || '' });
+                                    setShowObjForm(true);
+                                  }}
+                                  className={`text-xs ${currentTheme.objText} flex items-center gap-1 hover:underline`}
+                                >
+                                  <Edit2 className="w-3 h-3" /> แก้ไข
+                                </button>
+                              )}
                             </div>
                           </div>
                           
@@ -380,17 +397,19 @@ export default function TabStrategies({ planData }: { planData: any }) {
                               </div>
                             )}
                             
-                            <button 
-                              onClick={() => {
-                                setEditingKpiId(null);
-                                setTargetStratId(strat.id);
-                                setTargetObjId(obj.id);
-                                setKpiModalOpen(true);
-                              }}
-                              className={`text-sm font-medium ${currentTheme.objText} flex items-center gap-1 hover:underline mt-2`}
-                            >
-                              <Plus className="w-4 h-4" /> เพิ่มตัวชี้วัดในเป้าประสงค์นี้
-                            </button>
+                            {user && (
+                              <button 
+                                onClick={() => {
+                                  setEditingKpiId(null);
+                                  setTargetStratId(strat.id);
+                                  setTargetObjId(obj.id);
+                                  setKpiModalOpen(true);
+                                }}
+                                className={`text-sm font-medium ${currentTheme.objText} flex items-center gap-1 hover:underline mt-2`}
+                              >
+                                <Plus className="w-4 h-4" /> เพิ่มตัวชี้วัดในเป้าประสงค์นี้
+                              </button>
+                            )}
                           </div>
                         </div>
                       )
@@ -450,17 +469,19 @@ export default function TabStrategies({ planData }: { planData: any }) {
                     )}
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <button 
-                      onClick={() => {
-                        setObjForm({ id: '', strategy_id: strat.id, name: '', description: '' });
-                        setShowObjForm(true);
-                      }}
-                      className={`text-sm font-medium ${currentTheme.objText} flex items-center gap-1 hover:${currentTheme.objBg} px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:${currentTheme.objBorder}`}
-                    >
-                      <Plus className="w-4 h-4" /> เพิ่มเป้าประสงค์ใหม่
-                    </button>
-                  </div>
+                  {user && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button 
+                        onClick={() => {
+                          setObjForm({ id: '', strategy_id: strat.id, name: '', description: '' });
+                          setShowObjForm(true);
+                        }}
+                        className={`text-sm font-medium ${currentTheme.text} flex items-center gap-1 hover:underline bg-white px-3 py-1.5 rounded-lg border shadow-sm`}
+                      >
+                        <Plus className="w-4 h-4" /> เพิ่มเป้าประสงค์ใหม่
+                      </button>
+                    </div>
+                  )}
 
                 </div>
               )}

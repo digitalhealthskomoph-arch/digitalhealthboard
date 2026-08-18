@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Save, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategies = [], objectives = [], onClose }: { kpiId: string | null, strategyId: string, objectiveId: string | null, strategies?: any[], objectives?: any[], onClose: () => void }) {
+  const { user } = useAuth();
+  const isReadOnly = !user;
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     strategy_id: strategyId || '',
@@ -257,16 +260,20 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategie
 
         {/* Footer */}
         <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50/50 shrink-0">
-          {kpiId ? (
+          {!isReadOnly && kpiId ? (
             <button onClick={handleDelete} className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 font-medium">
               <Trash2 className="w-4 h-4" /> ลบตัวชี้วัด
             </button>
           ) : <div></div>}
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">ยกเลิก</button>
-            <button onClick={handleSave} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2">
-              <Save className="w-4 h-4" /> {loading ? 'กำลังบันทึก...' : 'บันทึก Data Dictionary'}
+            <button onClick={onClose} className="px-4 py-2 border rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
+              {isReadOnly ? 'ปิด' : 'ยกเลิก'}
             </button>
+            {!isReadOnly && (
+              <button onClick={handleSave} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2">
+                <Save className="w-4 h-4" /> {loading ? 'กำลังบันทึก...' : 'บันทึก Data Dictionary'}
+              </button>
+            )}
           </div>
         </div>
       </div>
