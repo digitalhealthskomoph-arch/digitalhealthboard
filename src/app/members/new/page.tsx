@@ -40,6 +40,12 @@ export default function NewMemberPage() {
     setLoading(true);
     setError(null);
 
+    if (!formData.name && !formData.position) {
+      setError('กรุณาระบุ ชื่อ-นามสกุล หรือ ตำแหน่ง อย่างใดอย่างหนึ่ง');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error: err } = await supabase
         .from('members')
@@ -89,7 +95,7 @@ export default function NewMemberPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ถ้ามี)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-gray-400" />
@@ -97,17 +103,16 @@ export default function NewMemberPage() {
                   <input
                     type="text"
                     name="name"
-                    required
                     value={formData.name}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                    placeholder="เช่น นพ.สมชาย ใจดี"
+                    placeholder="เช่น นพ.สมชาย ใจดี (เว้นว่างได้ถ้าระบุแค่ตำแหน่ง)"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งทางบริหาร (ถ้ามี)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งทางบริหาร (ถ้ามี, ใช้แทนชื่อได้)</label>
                 <input
                   type="text"
                   name="position"

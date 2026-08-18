@@ -69,6 +69,11 @@ export default function MembersPage() {
     e.preventDefault();
     if (!editingMember) return;
     
+    if (!editMemberData.name && !editMemberData.position) {
+      alert('กรุณาระบุ ชื่อ-นามสกุล หรือ ตำแหน่ง อย่างใดอย่างหนึ่ง');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('members')
@@ -238,11 +243,13 @@ export default function MembersPage() {
                       <li key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold shrink-0">
-                            {member.name.charAt(0)}
+                            {(member.name || member.position || '?').charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-900">{member.name}</p>
-                            <p className="text-sm text-gray-500">{member.position}</p>
+                            <p className="text-sm font-bold text-gray-900">{member.name || member.position}</p>
+                            {member.name && member.position && (
+                              <p className="text-sm text-gray-500">{member.position}</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -290,11 +297,13 @@ export default function MembersPage() {
                     <li key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold shrink-0">
-                          {member.name.charAt(0)}
+                          {(member.name || member.position || '?').charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{member.name}</p>
-                          <p className="text-sm text-gray-500">{member.position}</p>
+                          <p className="text-sm font-bold text-gray-900">{member.name || member.position}</p>
+                          {member.name && member.position && (
+                            <p className="text-sm text-gray-500">{member.position}</p>
+                          )}
                         </div>
                       </div>
                       {user && (
@@ -472,10 +481,9 @@ export default function MembersPage() {
             <form onSubmit={handleUpdateMember}>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (ถ้ามี)</label>
                   <input
                     type="text"
-                    required
                     value={editMemberData.name}
                     onChange={e => setEditMemberData({...editMemberData, name: e.target.value})}
                     className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm"
@@ -483,7 +491,7 @@ export default function MembersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งทางบริหาร (ถ้ามี)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งทางบริหาร (ถ้ามี, ใช้แทนชื่อได้)</label>
                   <input
                     type="text"
                     value={editMemberData.position}
