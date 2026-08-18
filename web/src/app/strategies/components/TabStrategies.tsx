@@ -14,11 +14,11 @@ export default function TabStrategies({ planData }: { planData: any }) {
   
   // Strategy Edit State
   const [editingStrat, setEditingStrat] = useState<string | null>(null);
-  const [stratForm, setStratForm] = useState<{ id?: string, code: string, name: string, theme_color: string, definition: string[], measures: string[] }>({ code: '', name: '', theme_color: 'blue', definition: [], measures: [] });
+  const [stratForm, setStratForm] = useState<{ id?: string, name: string, theme_color: string, definition: string[], measures: string[] }>({ name: '', theme_color: 'blue', definition: [], measures: [] });
   const [showAddStrat, setShowAddStrat] = useState(false);
 
   // Objective Add/Edit State
-  const [objForm, setObjForm] = useState({ id: '', strategy_id: '', code: '', name: '', description: '' });
+  const [objForm, setObjForm] = useState({ id: '', strategy_id: '', name: '', description: '' });
   const [showObjForm, setShowObjForm] = useState(false);
 
   // KPI Add/Edit State
@@ -66,7 +66,6 @@ export default function TabStrategies({ planData }: { planData: any }) {
   // Strategy Handlers
   const startEditStrat = (strat: any) => {
     setStratForm({
-      code: strat.code || '',
       name: strat.name || '',
       theme_color: strat.theme_color || 'blue',
       definition: strat.definition || [],
@@ -80,7 +79,6 @@ export default function TabStrategies({ planData }: { planData: any }) {
     try {
       if (id) {
         await supabase.from('strategies').update({
-          code: stratForm.code,
           name: stratForm.name,
           theme_color: stratForm.theme_color,
           definition: stratForm.definition,
@@ -88,7 +86,6 @@ export default function TabStrategies({ planData }: { planData: any }) {
         }).eq('id', id);
       } else {
         await supabase.from('strategies').insert([{
-          code: stratForm.code,
           name: stratForm.name,
           theme_color: stratForm.theme_color,
           definition: stratForm.definition,
@@ -122,11 +119,10 @@ export default function TabStrategies({ planData }: { planData: any }) {
     if (!objForm.name) return alert("ระบุชื่อเป้าประสงค์");
     try {
       if (objForm.id) {
-        await supabase.from('objectives').update({ code: objForm.code, name: objForm.name, description: objForm.description }).eq('id', objForm.id);
+        await supabase.from('objectives').update({ name: objForm.name, description: objForm.description }).eq('id', objForm.id);
       } else {
         await supabase.from('objectives').insert([{
           strategy_id: objForm.strategy_id,
-          code: objForm.code,
           name: objForm.name,
           description: objForm.description
         }]);
@@ -144,7 +140,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
         <h2 className="text-xl font-bold text-gray-900">ส่วนที่ 4 ยุทธศาสตร์ & ตัวชี้วัด (KPIs)</h2>
         <button 
           onClick={() => {
-            setStratForm({ code: '', name: '', theme_color: 'blue', definition: [], measures: [] });
+            setStratForm({ name: '', theme_color: 'blue', definition: [], measures: [] });
             setShowAddStrat(true);
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2"
@@ -157,16 +153,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
       {showAddStrat && (
         <div className="border border-blue-200 rounded-xl bg-blue-50 p-5 mb-6 shadow-sm relative">
           <h3 className="font-bold text-blue-900 mb-4">เพิ่มยุทธศาสตร์ใหม่</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="text-sm font-bold block mb-1">รหัส (เช่น S1)</label>
-              <input 
-                value={stratForm.code} 
-                onChange={e => setStratForm({...stratForm, code: e.target.value})} 
-                className="w-full border-gray-300 rounded p-2 text-sm"
-                placeholder="รหัสยุทธศาสตร์"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
               <input 
@@ -200,10 +187,11 @@ export default function TabStrategies({ planData }: { planData: any }) {
       )}
 
       <div className="space-y-4">
-        {strategies.map(strat => {
+        {strategies.map((strat, sIndex) => {
           const isExpanded = expandedStrats.includes(strat.id);
           const stratObjs = objectives.filter(o => o.strategy_id === strat.id);
           const theme = strat.theme_color || 'blue';
+          const stratCode = `S${sIndex + 1}`;
           
           const themeColors: Record<string, { bg: string, headerBg: string, text: string, objBorder: string, objBg: string, objText: string }> = {
             blue: { bg: 'bg-blue-50/50', headerBg: 'bg-blue-50', text: 'text-blue-900', objBorder: 'border-blue-200', objBg: 'bg-blue-50', objText: 'text-blue-600' },
@@ -225,7 +213,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
               >
                 <div className="flex items-center gap-3">
                   {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronRight className="w-5 h-5 text-gray-500" />}
-                  <h3 className={`font-bold text-lg ${currentTheme.text}`}>{strat.code ? `[${strat.code}] ` : ''}{strat.name}</h3>
+                  <h3 className={`font-bold text-lg ${currentTheme.text}`}>[{stratCode}] {strat.name}</h3>
                 </div>
                 <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md text-gray-500 border">
                   {stratObjs.length} เป้าประสงค์
@@ -247,15 +235,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <label className="text-sm font-bold block mb-1">รหัส (เช่น S1)</label>
-                            <input 
-                              value={stratForm.code} 
-                              onChange={e => setStratForm({...stratForm, code: e.target.value})} 
-                              className="w-full border-gray-300 rounded p-2 text-sm"
-                            />
-                          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="text-sm font-bold block mb-1">ชื่อยุทธศาสตร์</label>
                             <input 
@@ -330,14 +310,15 @@ export default function TabStrategies({ planData }: { planData: any }) {
 
                   {/* Objectives List */}
                   <div className="space-y-4">
-                    {stratObjs.map(obj => {
+                    {stratObjs.map((obj, oIndex) => {
                       const objKpis = kpis.filter(k => k.objective_id === obj.id);
+                      const objCode = `O${sIndex + 1}.${oIndex + 1}`;
                       return (
                         <div key={obj.id} className={`border ${currentTheme.objBorder} rounded-lg overflow-hidden`}>
                           <div className={`${currentTheme.objBg} px-4 py-2 flex justify-between items-center border-b ${currentTheme.objBorder}`}>
                             <div>
                               <span className={`text-xs font-bold ${currentTheme.objText} uppercase mr-2`}>เป้าประสงค์</span>
-                              <span className="font-bold text-gray-900 text-sm">{obj.code ? `[${obj.code}] ` : ''}{obj.name}</span>
+                              <span className="font-bold text-gray-900 text-sm">[{objCode}] {obj.name}</span>
                             </div>
                             <div className="flex gap-2">
                               <button 
@@ -364,9 +345,11 @@ export default function TabStrategies({ planData }: { planData: any }) {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {objKpis.map(kpi => (
+                                    {objKpis.map((kpi, kIndex) => {
+                                      const kpiCode = `K${sIndex + 1}.${oIndex + 1}.${kIndex + 1}`;
+                                      return (
                                       <tr key={kpi.id} className="border-b hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-4 py-3 text-gray-900">{kpi.code ? `[${kpi.code}] ` : ''}{kpi.name}</td>
+                                        <td className="px-4 py-3 text-gray-900">[{kpiCode}] {kpi.name}</td>
                                         <td className="px-4 py-3 text-center">
                                           <span className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-full ${kpi.readiness_status === 'พร้อมวัด' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                             {kpi.readiness_status || 'ไม่ระบุ'}
@@ -390,7 +373,8 @@ export default function TabStrategies({ planData }: { planData: any }) {
                                           </button>
                                         </td>
                                       </tr>
-                                    ))}
+                                      )
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
@@ -429,9 +413,11 @@ export default function TabStrategies({ planData }: { planData: any }) {
                               </tr>
                             </thead>
                             <tbody>
-                              {kpis.filter(k => k.strategy_id === strat.id && !k.objective_id).map(kpi => (
+                              {kpis.filter(k => k.strategy_id === strat.id && !k.objective_id).map((kpi, kIndex) => {
+                                const kpiCode = `K${sIndex + 1}.0.${kIndex + 1}`;
+                                return (
                                 <tr key={kpi.id} className="border-b hover:bg-gray-50 transition-colors">
-                                  <td className="px-4 py-3 text-gray-900">{kpi.code ? `[${kpi.code}] ` : ''}{kpi.name}</td>
+                                  <td className="px-4 py-3 text-gray-900">[{kpiCode}] {kpi.name}</td>
                                   <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-[10px] whitespace-nowrap rounded-full ${kpi.readiness_status === 'พร้อมวัด' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                       {kpi.readiness_status || 'ไม่ระบุ'}
@@ -455,7 +441,8 @@ export default function TabStrategies({ planData }: { planData: any }) {
                                     </button>
                                   </td>
                                 </tr>
-                              ))}
+                              )
+                            })}
                             </tbody>
                           </table>
                         </div>
@@ -488,17 +475,7 @@ export default function TabStrategies({ planData }: { planData: any }) {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <h3 className="text-lg font-bold mb-4">{objForm.id ? 'แก้ไขเป้าประสงค์' : 'เพิ่มเป้าประสงค์'}</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัส (เช่น O1)</label>
-                  <input 
-                    type="text" 
-                    value={objForm.code} 
-                    onChange={e => setObjForm({...objForm, code: e.target.value})} 
-                    className="w-full border-gray-300 rounded-lg text-sm" 
-                    placeholder="รหัสเป้าประสงค์"
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเป้าประสงค์</label>
                 <input 
@@ -533,7 +510,8 @@ export default function TabStrategies({ planData }: { planData: any }) {
           kpiId={editingKpiId} 
           strategyId={targetStratId}
           objectiveId={targetObjId}
-          objectives={objectives.filter(o => o.strategy_id === targetStratId)}
+          strategies={strategies}
+          objectives={objectives}
           onClose={() => { setKpiModalOpen(false); fetchData(); }} 
         />
       )}

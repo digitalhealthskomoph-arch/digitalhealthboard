@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Save, Trash2 } from 'lucide-react';
 
-export default function KPIFormModal({ kpiId, strategyId, objectiveId, objectives = [], onClose }: { kpiId: string | null, strategyId: string, objectiveId: string | null, objectives?: any[], onClose: () => void }) {
+export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategies = [], objectives = [], onClose }: { kpiId: string | null, strategyId: string, objectiveId: string | null, strategies?: any[], objectives?: any[], onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    strategy_id: strategyId || '',
     objective_id: objectiveId || '',
-    code: '',
     name: '',
     description: '',
     readiness_status: 'พร้อมวัด',
@@ -43,8 +43,8 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
       const { data } = await supabase.from('kpis').select('*').eq('id', kpiId).single();
       if (data) {
         setFormData({
+          strategy_id: data.strategy_id || strategyId || '',
           objective_id: data.objective_id || objectiveId || '',
-          code: data.code || '',
           name: data.name || '',
           description: data.description || '',
           readiness_status: data.readiness_status || 'พร้อมวัด',
@@ -76,7 +76,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
     try {
       const payload = {
         ...formData,
-        strategy_id: strategyId,
+        strategy_id: formData.strategy_id,
         objective_id: formData.objective_id || null
       };
       
@@ -126,19 +126,23 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
               <h3 className="text-lg font-bold border-b pb-2 mb-4 text-blue-900">1. ข้อมูลทั่วไป</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">เป้าประสงค์ (ผูกตัวชี้วัดเข้ากับเป้าประสงค์)</label>
-                  <select name="objective_id" value={formData.objective_id} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="">-- ไม่ระบุ / ไม่ผูกกับเป้าประสงค์ --</option>
-                    {objectives.map(obj => (
-                      <option key={obj.id} value={obj.id}>{obj.code ? `[${obj.code}] ` : ''}{obj.name}</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ยุทธศาสตร์ (ย้ายตัวชี้วัดไปยุทธศาสตร์อื่น)</label>
+                  <select name="strategy_id" value={formData.strategy_id} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    {strategies.map(strat => (
+                      <option key={strat.id} value={strat.id}>{strat.name}</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัสตัวชี้วัด (เช่น K1)</label>
-                  <input name="code" value={formData.code} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="รหัส K..." />
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เป้าประสงค์ (ผูกตัวชี้วัดเข้ากับเป้าประสงค์)</label>
+                  <select name="objective_id" value={formData.objective_id} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <option value="">-- ไม่ระบุ / ไม่ผูกกับเป้าประสงค์ --</option>
+                    {objectives.filter(o => o.strategy_id === formData.strategy_id).map((obj, idx) => (
+                      <option key={obj.id} value={obj.id}>{obj.name}</option>
+                    ))}
+                  </select>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อตัวชี้วัด</label>
                   <input name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
