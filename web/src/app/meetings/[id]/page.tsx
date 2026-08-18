@@ -6,8 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { FileText, Download, Plus, Save, X, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { exportToWord, buildMinutesHTML } from './word-export';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function MeetingDetailPage() {
+  const { user } = useAuth();
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
@@ -193,24 +195,28 @@ export default function MeetingDetailPage() {
             <FileText className="w-5 h-5 text-gray-500" />
             ระเบียบวาระการประชุม และ มติ
           </h2>
-          <button 
-            onClick={() => setShowAgendaForm(true)}
-            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
-          >
-            <Plus className="w-4 h-4" /> เพิ่มวาระ
-          </button>
+          {user && (
+            <button 
+              onClick={() => setShowAgendaForm(true)}
+              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <Plus className="w-4 h-4" /> เพิ่มวาระ
+            </button>
+          )}
         </div>
 
         <div className="p-6 space-y-6">
           {agendas.length === 0 ? (
             <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">
               <p className="text-gray-500">ยังไม่มีวาระการประชุม</p>
-              <button 
-                onClick={() => setShowAgendaForm(true)}
-                className="mt-3 text-sm text-blue-600 font-medium hover:underline"
-              >
-                + เพิ่มวาระแรก
-              </button>
+              {user && (
+                <button 
+                  onClick={() => setShowAgendaForm(true)}
+                  className="mt-3 text-sm text-blue-600 font-medium hover:underline"
+                >
+                  + เพิ่มวาระแรก
+                </button>
+              )}
             </div>
           ) : (
             agendas.map((agenda, index) => (
@@ -224,17 +230,19 @@ export default function MeetingDetailPage() {
                       <p className="text-sm text-gray-600 mt-1">{agenda.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {user && (
+                    <div className="flex gap-2">
+                      <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-white">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-700">มติที่ประชุม</h4>
-                    {activeResolutionAgendaId !== agenda.id && (
+                    {user && activeResolutionAgendaId !== agenda.id && (
                       <button 
                         onClick={() => {
                           setActiveResolutionAgendaId(agenda.id);
@@ -263,9 +271,11 @@ export default function MeetingDetailPage() {
                             </span>
                             {res.detail && <p className="text-sm text-gray-700 mt-1">{res.detail}</p>}
                           </div>
-                          <button onClick={() => deleteResolution(res.id)} className="text-gray-400 hover:text-red-500 p-1">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {user && (
+                            <button onClick={() => deleteResolution(res.id)} className="text-gray-400 hover:text-red-500 p-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

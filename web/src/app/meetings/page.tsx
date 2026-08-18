@@ -1,26 +1,38 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Presentation, Plus, Calendar, MapPin, Clock, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const dynamic = 'force-dynamic';
-
-export default async function MeetingsPage() {
-  let meetings: any[] = [];
+export default function MeetingsPage() {
+  const { user } = useAuth();
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  try {
-    const { data, error } = await supabase
-      .from('meetings')
-      .select('*')
-      .order('date', { ascending: false });
-      
-    if (!error && data) {
-      meetings = data;
-    }
-  } catch (err) {
-    console.error('Error fetching meetings:', err);
-  }
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('meetings')
+          .select('*')
+          .order('date', { ascending: false });
+          
+        if (!error && data) {
+          setMeetings(data);
+        }
+      } catch (err) {
+        console.error('Error fetching meetings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMeetings();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -56,22 +68,28 @@ export default async function MeetingsPage() {
         </div>
         
         <div className="mt-4 sm:mt-0">
-          <Link href="/meetings/new" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            สร้างการประชุมใหม่
-          </Link>
+          {user && (
+            <Link href="/meetings/new" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" />
+              สร้างการประชุมใหม่
+            </Link>
+          )}
         </div>
       </div>
 
-      {meetings.length === 0 ? (
+      {loading ? (
+        <div className="py-12 text-center text-gray-500">กำลังโหลดข้อมูล...</div>
+      ) : meetings.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
           <Presentation className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">ยังไม่มีการจัดการประชุม</h3>
           <p className="text-gray-500 mt-1">เริ่มต้นสร้างการประชุมครั้งแรกของคุณ</p>
-          <button className="mt-6 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            สร้างการประชุม
-          </button>
+          {user && (
+            <button className="mt-6 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" />
+              สร้างการประชุม
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

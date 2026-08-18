@@ -1,24 +1,36 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Users, UserPlus, Download, FileText, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const dynamic = 'force-dynamic';
-
-export default async function MembersPage() {
-  let members: any[] = [];
+export default function MembersPage() {
+  const { user } = useAuth();
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  try {
-    const { data, error } = await supabase
-      .from('members')
-      .select('*')
-      .order('role', { ascending: true }); // Ideally we'd sort by a specific order index
-      
-    if (!error && data) {
-      members = data;
-    }
-  } catch (err) {
-    console.error('Error fetching members:', err);
-  }
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('*')
+          .order('role', { ascending: true }); // Ideally we'd sort by a specific order index
+          
+        if (!error && data) {
+          setMembers(data);
+        }
+      } catch (err) {
+        console.error('Error fetching members:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
+  }, []);
 
   // Basic grouping by role (mock logic, in real life you might want an order column)
   const groupedMembers = members.reduce((acc: any, member: any) => {
@@ -46,10 +58,12 @@ export default async function MembersPage() {
             <FileText className="w-4 h-4" />
             คำสั่งแต่งตั้ง
           </button>
-          <Link href="/members/new" className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors">
-            <UserPlus className="w-4 h-4" />
-            เพิ่มกรรมการ
-          </Link>
+          {user && (
+            <Link href="/members/new" className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors">
+              <UserPlus className="w-4 h-4" />
+              เพิ่มกรรมการ
+            </Link>
+          )}
         </div>
       </div>
 
@@ -65,7 +79,9 @@ export default async function MembersPage() {
           </div>
         </div>
 
-        {members.length === 0 ? (
+        {loading ? (
+          <div className="p-12 text-center text-gray-500">กำลังโหลดข้อมูล...</div>
+        ) : members.length === 0 ? (
           <div className="p-12 text-center">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900">ยังไม่มีรายชื่อคณะกรรมการ</h3>
@@ -100,7 +116,9 @@ export default async function MembersPage() {
                               อ้างอิง: {member.order_ref}
                             </span>
                           )}
-                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                          {user && (
+                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -127,7 +145,9 @@ export default async function MembersPage() {
                           <p className="text-sm text-gray-500">{member.position}</p>
                         </div>
                       </div>
-                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                      {user && (
+                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -154,10 +174,12 @@ export default async function MembersPage() {
             </div>
           </div>
           
-          <button className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-500 hover:text-blue-600">
-            <Plus className="w-6 h-6" />
-            <span className="text-sm font-medium">อัปโหลดเอกสารอ้างอิง</span>
-          </button>
+          {user && (
+            <button className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-500 hover:text-blue-600">
+              <Plus className="w-6 h-6" />
+              <span className="text-sm font-medium">อัปโหลดเอกสารอ้างอิง</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

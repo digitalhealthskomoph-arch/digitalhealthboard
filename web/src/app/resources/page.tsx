@@ -1,24 +1,36 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Link as LinkIcon, Plus, ExternalLink, Edit2, Trash2, Folder, LayoutDashboard, Database } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const dynamic = 'force-dynamic';
-
-export default async function ResourcesPage() {
-  let resources: any[] = [];
+export default function ResourcesPage() {
+  const { user } = useAuth();
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  try {
-    const { data, error } = await supabase
-      .from('resources')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (!error && data) {
-      resources = data;
-    }
-  } catch (err) {
-    console.error('Error fetching resources:', err);
-  }
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('resources')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          setResources(data);
+        }
+      } catch (err) {
+        console.error('Error fetching resources:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, []);
 
   // Fallback / Mock categories if empty, or just group them
   const groupedResources = resources.reduce((acc: any, res: any) => {
@@ -59,22 +71,28 @@ export default async function ResourcesPage() {
         </div>
         
         <div className="mt-4 sm:mt-0">
-          <Link href="/resources/new" className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            เพิ่มแหล่งข้อมูล
-          </Link>
+          {user && (
+            <Link href="/resources/new" className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" />
+              เพิ่มแหล่งข้อมูล
+            </Link>
+          )}
         </div>
       </div>
 
-      {resources.length === 0 ? (
+      {loading ? (
+        <div className="py-12 text-center text-gray-500">กำลังโหลดข้อมูล...</div>
+      ) : resources.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
           <LinkIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">ยังไม่มีแหล่งข้อมูลในระบบ</h3>
           <p className="text-gray-500 mt-1">เพิ่มลิงก์แดชบอร์ดกระทรวง หรือเว็บไซต์ที่เกี่ยวข้องเพื่อรวบรวมไว้ที่นี่</p>
-          <Link href="/resources/new" className="mt-6 inline-flex items-center gap-2 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            เพิ่มแหล่งข้อมูลแรก
-          </Link>
+          {user && (
+            <Link href="/resources/new" className="mt-6 inline-flex items-center gap-2 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" />
+              เพิ่มแหล่งข้อมูลแรก
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -90,14 +108,16 @@ export default async function ResourcesPage() {
                   <div key={resource.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative">
                     
                     {/* Admin actions overlay */}
-                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                       <button className="p-1.5 bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-100 rounded-md transition-colors" title="แก้ไข">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button className="p-1.5 bg-white text-gray-500 hover:text-red-600 shadow-sm border border-gray-100 rounded-md transition-colors" title="ลบ">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {user && (
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                         <button className="p-1.5 bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-100 rounded-md transition-colors" title="แก้ไข">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button className="p-1.5 bg-white text-gray-500 hover:text-red-600 shadow-sm border border-gray-100 rounded-md transition-colors" title="ลบ">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
 
                     <h3 className="font-bold text-gray-900 text-lg mb-2 pr-16">{resource.title}</h3>
                     
