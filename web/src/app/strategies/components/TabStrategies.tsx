@@ -475,9 +475,8 @@ export default function TabStrategies({ planData }: { planData: any }) {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <h3 className="text-lg font-bold mb-4">{objForm.id ? 'แก้ไขเป้าประสงค์' : 'เพิ่มเป้าประสงค์'}</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเป้าประสงค์</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเป้าประสงค์</label>
                 <input 
                   type="text" 
                   value={objForm.name} 
