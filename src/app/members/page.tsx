@@ -17,6 +17,11 @@ export default function MembersPage() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', url: '' });
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
+  // Edit member states
+  const [showEditMemberModal, setShowEditMemberModal] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [editMemberData, setEditMemberData] = useState({ name: '', position: '', role: '', order_ref: '' });
   
   useEffect(() => {
     const fetchMembers = async () => {
@@ -57,6 +62,32 @@ export default function MembersPage() {
     } catch (err) {
       console.error('Error deleting member:', err);
       alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+    }
+  };
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update({
+          name: editMemberData.name,
+          position: editMemberData.position,
+          role: editMemberData.role,
+          order_ref: editMemberData.order_ref
+        })
+        .eq('id', editingMember.id);
+        
+      if (error) throw error;
+      
+      setMembers(members.map(m => m.id === editingMember.id ? { ...m, ...editMemberData } : m));
+      setShowEditMemberModal(false);
+      setEditingMember(null);
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูลกรรมการ');
     }
   };
 
@@ -222,6 +253,21 @@ export default function MembersPage() {
                           )}
                           {user && (
                             <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingMember(member);
+                                  setEditMemberData({
+                                    name: member.name || '',
+                                    position: member.position || '',
+                                    role: member.role || '',
+                                    order_ref: member.order_ref || ''
+                                  });
+                                  setShowEditMemberModal(true);
+                                }} 
+                                className="text-gray-400 hover:text-blue-600 text-sm font-medium mr-2"
+                              >
+                                แก้ไข
+                              </button>
                               <button onClick={() => handleDeleteMember(member.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">ลบ</button>
                             </div>
                           )}
@@ -253,6 +299,21 @@ export default function MembersPage() {
                       </div>
                       {user && (
                         <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingMember(member);
+                              setEditMemberData({
+                                name: member.name || '',
+                                position: member.position || '',
+                                role: member.role || '',
+                                order_ref: member.order_ref || ''
+                              });
+                              setShowEditMemberModal(true);
+                            }} 
+                            className="text-gray-400 hover:text-blue-600 text-sm font-medium mr-2"
+                          >
+                            แก้ไข
+                          </button>
                           <button onClick={() => handleDeleteMember(member.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">ลบ</button>
                         </div>
                       )}
@@ -387,6 +448,99 @@ export default function MembersPage() {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {uploadingDoc ? 'กำลังบันทึก...' : 'บันทึกเอกสาร'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {showEditMemberModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-purple-50">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2"><User className="w-5 h-5 text-purple-600"/> แก้ไขข้อมูลกรรมการ</h3>
+              <button onClick={() => {
+                setShowEditMemberModal(false);
+                setEditingMember(null);
+              }} className="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateMember}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editMemberData.name}
+                    onChange={e => setEditMemberData({...editMemberData, name: e.target.value})}
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่งทางบริหาร (ถ้ามี)</label>
+                  <input
+                    type="text"
+                    value={editMemberData.position}
+                    onChange={e => setEditMemberData({...editMemberData, position: e.target.value})}
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">บทบาทในคณะกรรมการ *</label>
+                  <select
+                    value={editMemberData.role}
+                    onChange={e => setEditMemberData({...editMemberData, role: e.target.value})}
+                    className="block w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  >
+                    <option value="ประธานกรรมการ">ประธานกรรมการ</option>
+                    <option value="รองประธานกรรมการ">รองประธานกรรมการ</option>
+                    <option value="กรรมการ">กรรมการ</option>
+                    <option value="กรรมการและเลขานุการ">กรรมการและเลขานุการ</option>
+                    <option value="กรรมการและผู้ช่วยเลขานุการ">กรรมการและผู้ช่วยเลขานุการ</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่คำสั่งอ้างอิง</label>
+                  {documents.length > 0 ? (
+                    <select
+                      value={editMemberData.order_ref}
+                      onChange={e => setEditMemberData({...editMemberData, order_ref: e.target.value})}
+                      className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm"
+                    >
+                      <option value="">-- ไม่ระบุ / เลือกภายหลัง --</option>
+                      {documents.map(doc => (
+                        <option key={doc.id} value={doc.title}>{doc.title}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded border border-gray-200">
+                      ยังไม่มีเอกสารคำสั่งแต่งตั้ง (เพิ่มได้ที่ "เอกสารที่เกี่ยวข้อง")
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowEditMemberModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                >
+                  บันทึกข้อมูล
                 </button>
               </div>
             </form>

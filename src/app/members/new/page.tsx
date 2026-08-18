@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Users, Save, X, User } from 'lucide-react';
@@ -10,6 +10,19 @@ export default function NewMemberPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+      const { data } = await supabase
+        .from('resources')
+        .select('*')
+        .eq('category', 'member_document')
+        .order('created_at', { ascending: false });
+      if (data) setDocuments(data);
+    };
+    fetchDocs();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -123,14 +136,23 @@ export default function NewMemberPage() {
 
               <div className="col-span-1 md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่คำสั่งอ้างอิง</label>
-                <input
-                  type="text"
-                  name="order_ref"
-                  value={formData.order_ref}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="เช่น คำสั่งจังหวัดสระแก้ว ที่ 123/2569"
-                />
+                {documents.length > 0 ? (
+                  <select
+                    name="order_ref"
+                    value={formData.order_ref}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  >
+                    <option value="">-- ไม่ระบุ / เลือภายหลัง --</option>
+                    {documents.map(doc => (
+                      <option key={doc.id} value={doc.title}>{doc.title}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    ยังไม่มีเอกสารคำสั่งแต่งตั้งในระบบ แนะนำให้กลับไปหน้า <Link href="/members" className="font-bold underline hover:text-amber-800">ข้อมูลคณะกรรมการ</Link> เพื่อเพิ่ม "เอกสารที่เกี่ยวข้อง" ก่อน
+                  </div>
+                )}
               </div>
             </div>
 
