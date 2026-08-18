@@ -22,6 +22,11 @@ export default function MembersPage() {
   const [showEditMemberModal, setShowEditMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editMemberData, setEditMemberData] = useState({ name: '', position: '', role: '', order_ref: '' });
+
+  // Duties states
+  const [duties, setDuties] = useState<any[]>([]);
+  const [newDuty, setNewDuty] = useState('');
+  const [isAddingDuty, setIsAddingDuty] = useState(false);
   
   useEffect(() => {
     const fetchMembers = async () => {
@@ -29,28 +34,46 @@ export default function MembersPage() {
         const { data, error } = await supabase
           .from('members')
           .select('*')
-          .order('role', { ascending: true }); // Ideally we'd sort by a specific order index
+          .order('created_at', { ascending: true });
           
         if (!error && data) {
           setMembers(data);
         }
-
-        const { data: docsData } = await supabase
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    
+    const fetchDocuments = async () => {
+      try {
+        const { data, error } = await supabase
           .from('resources')
           .select('*')
           .eq('category', 'member_document')
           .order('created_at', { ascending: false });
-        
-        if (docsData) setDocuments(docsData);
-        
+        if (data && !error) setDocuments(data);
       } catch (err) {
-        console.error('Error fetching data:', err);
-      } finally {
-        setLoading(false);
+        console.error(err);
+      }
+    };
+
+    const fetchDuties = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('board_duties')
+          .select('*')
+          .order('order_index', { ascending: true })
+          .order('created_at', { ascending: true });
+        if (data && !error) setDuties(data);
+      } catch (err) {
+        console.error('board_duties table might not exist yet', err);
       }
     };
 
     fetchMembers();
+    fetchDocuments();
+    fetchDuties();
+    setLoading(false);
   }, []);
 
   const handleDeleteMember = async (id: string) => {
@@ -172,6 +195,36 @@ export default function MembersPage() {
     }
   };
 
+  const handleAddDuty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDuty.trim()) return;
+    try {
+      const { data, error } = await supabase
+        .from('board_duties')
+        .insert([{ description: newDuty, order_index: duties.length }])
+        .select()
+        .single();
+      if (error) throw error;
+      setDuties([...duties, data]);
+      setNewDuty('');
+      setIsAddingDuty(false);
+    } catch (error) {
+      console.error(error);
+      alert('เกิดข้อผิดพลาดในการบันทึกหน้าที่และอำนาจ (กรุณาตรวจสอบว่าสร้างตาราง board_duties แล้วหรือยัง)');
+    }
+  };
+
+  const handleDeleteDuty = async (id: string) => {
+    if (!window.confirm('ยืนยันการลบลบหน้าที่และอำนาจข้อนี้?')) return;
+    try {
+      const { error } = await supabase.from('board_duties').delete().eq('id', id);
+      if (error) throw error;
+      setDuties(duties.filter(d => d.id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   // Basic grouping by role (mock logic, in real life you might want an order column)
   const groupedMembers = members.reduce((acc: any, member: any) => {
     const role = member.role || 'กรรมการ';
@@ -239,11 +292,11 @@ export default function MembersPage() {
                     <h3 className="text-sm font-bold text-purple-800">{roleTitle}</h3>
                   </div>
                   <ul className="divide-y divide-gray-100">
-                    {roleMembers.map((member: any) => (
+                    {roleMembers.map((member: any, index: number) => (
                       <li key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold shrink-0">
-                            {(member.name || member.position || '?').charAt(0)}
+                            {index + 1}
                           </div>
                           <div>
                             <p className="text-sm font-bold text-gray-900">{member.name || member.position}</p>
@@ -293,11 +346,11 @@ export default function MembersPage() {
                   <h3 className="text-sm font-bold text-gray-700">{roleTitle}</h3>
                 </div>
                 <ul className="divide-y divide-gray-100">
-                  {groupedMembers[roleTitle].map((member: any) => (
+                  {groupedMembers[roleTitle].map((member: any, index: number) => (
                     <li key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold shrink-0">
-                          {(member.name || member.position || '?').charAt(0)}
+                          {index + 1}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900">{member.name || member.position}</p>
@@ -329,6 +382,85 @@ export default function MembersPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Duties Section */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8 mt-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-purple-600" />
+            หน้าที่และอำนาจ
+          </h2>
+          {user && !isAddingDuty && (
+            <button
+              onClick={() => setIsAddingDuty(true)}
+              className="text-sm font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> เพิ่มหน้าที่
+            </button>
+          )}
+        </div>
+
+        {isAddingDuty && (
+          <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
+            <form onSubmit={handleAddDuty}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">รายละเอียดหน้าที่และอำนาจ</label>
+              <textarea
+                value={newDuty}
+                onChange={e => setNewDuty(e.target.value)}
+                required
+                rows={3}
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm mb-3"
+                placeholder="ระบุหน้าที่และอำนาจ..."
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingDuty(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {duties.length === 0 && !isAddingDuty ? (
+          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-100">
+            ยังไม่ได้ระบุหน้าที่และอำนาจ
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {duties.map((duty, index) => (
+              <div key={duty.id} className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-colors group">
+                <div className="shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-sm">
+                  {index + 1}
+                </div>
+                <div className="flex-1 text-sm text-gray-800 leading-relaxed pt-1.5 whitespace-pre-wrap">
+                  {duty.description}
+                </div>
+                {user && (
+                  <div className="shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleDeleteDuty(duty.id)}
+                      className="text-red-400 hover:text-red-600 p-1"
+                      title="ลบ"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
