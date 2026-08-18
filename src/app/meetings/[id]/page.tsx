@@ -550,11 +550,15 @@ export default function MeetingDetailPage() {
                       )}
                       <button 
                         onClick={() => {
-                          const subAgendas = agendas.filter(a => String(a.agenda_no).startsWith(`${agenda.agenda_no}.`));
+                          const parentPartsLength = String(agenda.agenda_no).split('.').length;
+                          const directChildren = agendas.filter(a => {
+                            const parts = String(a.agenda_no).split('.');
+                            return String(a.agenda_no).startsWith(`${agenda.agenda_no}.`) && parts.length === parentPartsLength + 1;
+                          });
                           let nextNum = 1;
-                          if (subAgendas.length > 0) {
-                            const lastSub = subAgendas[subAgendas.length - 1];
-                            const parts = String(lastSub.agenda_no).split('.');
+                          if (directChildren.length > 0) {
+                            const lastChild = directChildren[directChildren.length - 1];
+                            const parts = String(lastChild.agenda_no).split('.');
                             const lastPart = parseInt(parts[parts.length - 1]);
                             if (!isNaN(lastPart)) {
                               nextNum = lastPart + 1;
