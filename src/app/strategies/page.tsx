@@ -22,23 +22,28 @@ export default function StrategicBookPage() {
   const fetchPlan = async () => {
     setLoading(true);
     try {
-      let { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('strategic_plans')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: true });
 
-      if (error && error.code === 'PGRST116') { // No rows found
-        const { data: newData } = await supabase
+      if (error) {
+        console.error('Error fetching plan:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (rows && rows.length > 0) {
+        setPlanData(rows[0]);
+      } else {
+        // No plan exists yet — create a blank one
+        const { data: newData, error: insertError } = await supabase
           .from('strategic_plans')
-          .insert([{ title: 'ร่างแผนยุทธศาสตร์สุขภาพดิจิทัล' }])
+          .insert([{ title: 'แผนยุทธศาสตร์สุขภาพดิจิทัล' }])
           .select()
           .single();
-        data = newData;
+        if (!insertError) setPlanData(newData);
       }
-      
-      setPlanData(data);
     } catch (err) {
       console.error(err);
     } finally {
