@@ -20,7 +20,14 @@ export default function MeetingDetailPage() {
 
   // Form states
   const [showAgendaForm, setShowAgendaForm] = useState(false);
-  const [newAgenda, setNewAgenda] = useState({ title: '', description: '', order_index: 1 });
+  const [newAgenda, setNewAgenda] = useState({ 
+    agenda_no: '', 
+    title: '', 
+    description: '',
+    resolution_summary: '',
+    attachment_url: '',
+    responsible_person: ''
+  });
   
   const [activeResolutionAgendaId, setActiveResolutionAgendaId] = useState<string | null>(null);
   const [newResolution, setNewResolution] = useState({ resolution_type: 'รับทราบ', detail: '' });
@@ -50,14 +57,16 @@ export default function MeetingDetailPage() {
           resolutions (*)
         `)
         .eq('meeting_id', id)
-        .order('order_index', { ascending: true });
+        .order('agenda_no', { ascending: true });
         
       if (aError) throw aError;
       setAgendas(agendasData || []);
       
-      // Default next order_index
+      // Default next agenda_no (simple guess)
       if (agendasData && agendasData.length > 0) {
-        setNewAgenda(prev => ({ ...prev, order_index: agendasData.length + 1 }));
+        setNewAgenda(prev => ({ ...prev, agenda_no: String(agendasData.length + 1) }));
+      } else {
+        setNewAgenda(prev => ({ ...prev, agenda_no: '1' }));
       }
 
     } catch (error) {
@@ -74,13 +83,23 @@ export default function MeetingDetailPage() {
         .from('agendas')
         .insert([{
           meeting_id: id,
+          agenda_no: newAgenda.agenda_no,
           title: newAgenda.title,
           description: newAgenda.description,
-          order_index: newAgenda.order_index
+          resolution_summary: newAgenda.resolution_summary,
+          attachment_url: newAgenda.attachment_url,
+          responsible_person: newAgenda.responsible_person
         }]);
       if (error) throw error;
       
-      setNewAgenda({ title: '', description: '', order_index: newAgenda.order_index + 1 });
+      setNewAgenda({ 
+        agenda_no: String(agendas.length + 2), 
+        title: '', 
+        description: '',
+        resolution_summary: '',
+        attachment_url: '',
+        responsible_person: ''
+      });
       setShowAgendaForm(false);
       fetchMeetingData();
     } catch (error) {
@@ -224,7 +243,7 @@ export default function MeetingDetailPage() {
                 <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-900 text-base">
-                      วาระที่ {agenda.order_index} {agenda.title}
+                      วาระที่ {agenda.agenda_no} {agenda.title}
                     </h3>
                     {agenda.description && (
                       <p className="text-sm text-gray-600 mt-1">{agenda.description}</p>
@@ -239,7 +258,39 @@ export default function MeetingDetailPage() {
                   )}
                 </div>
 
-                <div className="p-4 bg-white">
+                <div className="p-4 bg-white space-y-4">
+                  {/* แสดงมติ/สรุปการประชุม */}
+                  {agenda.resolution_summary && (
+                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                      <h4 className="text-xs font-bold text-blue-800 mb-1">มติ / สรุปการประชุม</h4>
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {agenda.resolution_summary}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* แสดงเอกสารแนบและผู้รับผิดชอบ */}
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    {agenda.attachment_url && (
+                      <a 
+                        href={agenda.attachment_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        <FileText className="w-4 h-4" />
+                        เอกสารแนบ
+                      </a>
+                    )}
+                    {agenda.responsible_person && (
+                      <div className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                        <span className="font-semibold">ผู้รับผิดชอบ:</span>
+                        {agenda.responsible_person}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resolutions section (legacy/optional) */}
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-700">มติที่ประชุม</h4>
                     {user && activeResolutionAgendaId !== agenda.id && (
@@ -328,36 +379,72 @@ export default function MeetingDetailPage() {
               <form onSubmit={handleAddAgenda} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับวาระ</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ที่ (ลำดับวาระ) *</label>
                     <input
-                      type="number"
+                      type="text"
                       required
-                      value={newAgenda.order_index}
-                      onChange={e => setNewAgenda({...newAgenda, order_index: Number(e.target.value)})}
+                      value={newAgenda.agenda_no}
+                      onChange={e => setNewAgenda({...newAgenda, agenda_no: e.target.value})}
+                      placeholder="เช่น 1, 2.1, 4.2.1"
                       className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อวาระ *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">วาระการประชุม *</label>
                     <input
                       type="text"
                       required
                       value={newAgenda.title}
                       onChange={e => setNewAgenda({...newAgenda, title: e.target.value})}
-                      placeholder="เช่น เรื่องที่ประธานแจ้งให้ทราบ"
+                      placeholder="ชื่อวาระการประชุม"
                       className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียดเพิ่มเติม</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
                   <textarea
                     rows={2}
                     value={newAgenda.description}
                     onChange={e => setNewAgenda({...newAgenda, description: e.target.value})}
+                    placeholder="รายละเอียดของวาระ"
                     className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">มติ / สรุปการประชุม</label>
+                  <textarea
+                    rows={4}
+                    value={newAgenda.resolution_summary}
+                    onChange={e => setNewAgenda({...newAgenda, resolution_summary: e.target.value})}
+                    placeholder="สรุปมติที่ประชุม"
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ลิงก์เอกสารแนบ</label>
+                    <input
+                      type="url"
+                      value={newAgenda.attachment_url}
+                      onChange={e => setNewAgenda({...newAgenda, attachment_url: e.target.value})}
+                      placeholder="https://..."
+                      className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ผู้รับผิดชอบ</label>
+                    <input
+                      type="text"
+                      value={newAgenda.responsible_person}
+                      onChange={e => setNewAgenda({...newAgenda, responsible_person: e.target.value})}
+                      placeholder="ระบุชื่อผู้รับผิดชอบ"
+                      className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
