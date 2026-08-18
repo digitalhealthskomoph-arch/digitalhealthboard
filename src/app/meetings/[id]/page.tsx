@@ -17,6 +17,8 @@ export default function MeetingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [meeting, setMeeting] = useState<any>(null);
   const [agendas, setAgendas] = useState<any[]>([]);
+  const [allMembers, setAllMembers] = useState<any[]>([]);
+  const [attendees, setAttendees] = useState<any[]>([]);
 
   // Form states
   const [showAgendaForm, setShowAgendaForm] = useState(false);
@@ -29,6 +31,8 @@ export default function MeetingDetailPage() {
     responsible_person: ''
   });
   
+  const [activeAddSubAgendaId, setActiveAddSubAgendaId] = useState<string | null>(null);
+
   const [activeResolutionAgendaId, setActiveResolutionAgendaId] = useState<string | null>(null);
   const [newResolution, setNewResolution] = useState({ resolution_type: 'รับทราบ', detail: '' });
 
@@ -112,6 +116,20 @@ export default function MeetingDetailPage() {
         .limit(10);
       if (pastData) setPastMeetings(pastData);
 
+      // Fetch all members
+      const { data: membersData } = await supabase
+        .from('members')
+        .select('*')
+        .order('role', { ascending: true });
+      if (membersData) setAllMembers(membersData);
+
+      // Fetch attendees for this meeting
+      const { data: attendeesData } = await supabase
+        .from('meeting_attendees')
+        .select('*')
+        .eq('meeting_id', id);
+      if (attendeesData) setAttendees(attendeesData);
+
     } catch (error) {
       console.error('Error fetching meeting:', error);
     } finally {
@@ -144,10 +162,41 @@ export default function MeetingDetailPage() {
         responsible_person: ''
       });
       setShowAgendaForm(false);
+      setActiveAddSubAgendaId(null);
       fetchMeetingData();
     } catch (error) {
       console.error('Error adding agenda:', error);
       alert('เกิดข้อผิดพลาดในการเพิ่มวาระ');
+    }
+  };
+
+  const handleToggleAttendance = async (memberId: string, status: string) => {
+    try {
+      const existing = attendees.find(a => a.member_id === memberId);
+      
+      if (existing) {
+        if (existing.status === status) return;
+        
+        const { error } = await supabase
+          .from('meeting_attendees')
+          .update({ status })
+          .eq('id', existing.id);
+        if (error) throw error;
+        
+        setAttendees(attendees.map(a => a.id === existing.id ? { ...a, status } : a));
+      } else {
+        const { data, error } = await supabase
+          .from('meeting_attendees')
+          .insert([{ meeting_id: id, member_id: memberId, status }])
+          .select()
+          .single();
+        if (error) throw error;
+        
+        setAttendees([...attendees, data]);
+      }
+    } catch (err) {
+      console.error('Error toggling attendance:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลการเข้าร่วม');
     }
   };
 
@@ -444,6 +493,7 @@ export default function MeetingDetailPage() {
           ) : (
             agendas.map((agenda, index) => {
               const isMainAgenda = !String(agenda.agenda_no).includes('.');
+              const hasChildren = agendas.some(a => String(a.agenda_no).startsWith(`${agenda.agenda_no}.`));
               
               return (
               <div key={agenda.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -489,7 +539,8 @@ export default function MeetingDetailPage() {
                       <button 
                         onClick={() => {
                           setNewAgenda({ ...newAgenda, agenda_no: `${agenda.agenda_no}.1` });
-                          setShowAgendaForm(true);
+                          setActiveAddSubAgendaId(agenda.id);
+                          setShowAgendaForm(false);
                         }}
                         className="text-gray-400 hover:text-green-500"
                         title="เพิ่มวาระย่อย"
@@ -626,6 +677,77 @@ export default function MeetingDetailPage() {
                     )}
                   </div>
                 ) : null}
+
+                {/* แสดง "ไม่มี" เมื่อเป็นวาระหลักและไม่มีวาระย่อย */}
+                {isMainAgenda && !hasChildren && (
+                  <div className="p-4 bg-white text-center">
+                    <span className="text-sm text-gray-400 italic">- ไม่มีวาระย่อย -</span>
+                  </div>
+                )}
+
+                {/* Inline Add Sub-agenda Form */}
+                {activeAddSubAgendaId === agenda.id && (
+                  <div className="border-t border-gray-200 bg-blue-50/30 p-4">
+                    <form onSubmit={handleAddAgenda} className="space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold text-blue-800 text-sm">เพิ่มวาระย่อย</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="md:col-span-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">ที่ (ลำดับวาระ) *</label>
+                          <input
+                            type="text"
+                            required
+                            value={newAgenda.agenda_no}
+                            onChange={e => setNewAgenda({...newAgenda, agenda_no: e.target.value})}
+                            placeholder="เช่น 1.1"
+                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                        <div className="md:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อวาระการประชุม *</label>
+                          <input
+                            type="text"
+                            required
+                            value={newAgenda.title}
+                            onChange={e => setNewAgenda({...newAgenda, title: e.target.value})}
+                            placeholder="ระบุชื่อวาระการประชุม"
+                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด (ไม่บังคับ)</label>
+                        <textarea
+                          rows={2}
+                          value={newAgenda.description}
+                          onChange={e => setNewAgenda({...newAgenda, description: e.target.value})}
+                          placeholder="รายละเอียดของวาระนี้"
+                          className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveAddSubAgendaId(null)} 
+                          className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
+                        >
+                          ยกเลิก
+                        </button>
+                        <button 
+                          type="submit" 
+                          className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-1"
+                        >
+                          <Save className="w-4 h-4" />
+                          บันทึกวาระ
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             );
           })
@@ -725,6 +847,87 @@ export default function MeetingDetailPage() {
               </form>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Attendance Section */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8">
+        <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">บันทึกการเข้าร่วมประชุม</h2>
+            <p className="text-sm text-gray-500">เช็คชื่อคณะกรรมการที่เข้าร่วมการประชุมนี้</p>
+          </div>
+          <div className="flex gap-4 text-sm font-medium">
+            <span className="text-green-600">มา: {attendees.filter(a => a.status === 'present').length}</span>
+            <span className="text-red-600">ไม่มา: {attendees.filter(a => a.status === 'absent').length}</span>
+            <span className="text-orange-600">ลา: {attendees.filter(a => a.status === 'leave').length}</span>
+          </div>
+        </div>
+        
+        <div className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ - นามสกุล</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">บทบาท</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">มา</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ไม่มา</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ลา</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {allMembers.map(member => {
+                const attendance = attendees.find(a => a.member_id === member.id);
+                const status = attendance ? attendance.status : null;
+                
+                return (
+                  <tr key={member.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                      <div className="text-xs text-gray-500">{member.position}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {member.role}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <input 
+                        type="radio" 
+                        checked={status === 'present'}
+                        onChange={() => handleToggleAttendance(member.id, 'present')}
+                        disabled={!user}
+                        className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500 cursor-pointer disabled:opacity-50"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <input 
+                        type="radio" 
+                        checked={status === 'absent'}
+                        onChange={() => handleToggleAttendance(member.id, 'absent')}
+                        disabled={!user}
+                        className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer disabled:opacity-50"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <input 
+                        type="radio" 
+                        checked={status === 'leave'}
+                        onChange={() => handleToggleAttendance(member.id, 'leave')}
+                        disabled={!user}
+                        className="h-4 w-4 text-orange-600 border-gray-300 focus:ring-orange-500 cursor-pointer disabled:opacity-50"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+              {allMembers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">
+                    ยังไม่มีรายชื่อคณะกรรมการในระบบ กรุณาเพิ่มข้อมูลที่เมนู "ข้อมูลคณะกรรมการ"
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

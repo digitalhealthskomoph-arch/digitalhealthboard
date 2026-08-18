@@ -32,6 +32,18 @@ export default function MembersPage() {
     fetchMembers();
   }, []);
 
+  const handleDeleteMember = async (id: string) => {
+    if (!window.confirm('คุณต้องการลบรายชื่อกรรมการท่านนี้ใช่หรือไม่?')) return;
+    try {
+      const { error } = await supabase.from('members').delete().eq('id', id);
+      if (error) throw error;
+      setMembers(members.filter(m => m.id !== id));
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+    }
+  };
+
   // Basic grouping by role (mock logic, in real life you might want an order column)
   const groupedMembers = members.reduce((acc: any, member: any) => {
     const role = member.role || 'กรรมการ';
@@ -117,7 +129,9 @@ export default function MembersPage() {
                             </span>
                           )}
                           {user && (
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleDeleteMember(member.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">ลบ</button>
+                            </div>
                           )}
                         </div>
                       </li>
@@ -146,7 +160,9 @@ export default function MembersPage() {
                         </div>
                       </div>
                       {user && (
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">แก้ไข</button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleDeleteMember(member.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">ลบ</button>
+                        </div>
                       )}
                     </li>
                   ))}
