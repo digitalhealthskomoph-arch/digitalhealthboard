@@ -775,8 +775,9 @@ export default function MeetingDetailPage() {
                 )}
               </div>
             );
-          })})()
-          )}
+          });
+          })()
+          }
 
           {/* Add Agenda Form Modal or Inline */}
           {showAgendaForm && (
