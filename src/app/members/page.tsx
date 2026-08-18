@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Users, UserPlus, Download, FileText, Search, Plus } from 'lucide-react';
+import { Users, UserPlus, Download, FileText, Search, Plus, User } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
