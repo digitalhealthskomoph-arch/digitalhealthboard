@@ -490,13 +490,25 @@ export default function MeetingDetailPage() {
                 </div>
               )}
             </div>
-          ) : (
-            agendas.map((agenda, index) => {
+          ) : (() => {
+            let targetRenderFormId = activeAddSubAgendaId;
+            if (activeAddSubAgendaId) {
+              const parentAgenda = agendas.find(a => a.id === activeAddSubAgendaId);
+              if (parentAgenda) {
+                const subAgendas = agendas.filter(a => String(a.agenda_no).startsWith(`${parentAgenda.agenda_no}.`));
+                if (subAgendas.length > 0) {
+                  targetRenderFormId = subAgendas[subAgendas.length - 1].id;
+                }
+              }
+            }
+
+            return agendas.map((agenda, index) => {
               const isMainAgenda = !String(agenda.agenda_no).includes('.');
               const hasChildren = agendas.some(a => String(a.agenda_no).startsWith(`${agenda.agenda_no}.`));
               
               return (
-              <div key={agenda.id} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div key={agenda.id} className="space-y-4">
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
@@ -538,7 +550,17 @@ export default function MeetingDetailPage() {
                       )}
                       <button 
                         onClick={() => {
-                          setNewAgenda({ ...newAgenda, agenda_no: `${agenda.agenda_no}.1` });
+                          const subAgendas = agendas.filter(a => String(a.agenda_no).startsWith(`${agenda.agenda_no}.`));
+                          let nextNum = 1;
+                          if (subAgendas.length > 0) {
+                            const lastSub = subAgendas[subAgendas.length - 1];
+                            const parts = String(lastSub.agenda_no).split('.');
+                            const lastPart = parseInt(parts[parts.length - 1]);
+                            if (!isNaN(lastPart)) {
+                              nextNum = lastPart + 1;
+                            }
+                          }
+                          setNewAgenda({ ...newAgenda, agenda_no: `${agenda.agenda_no}.${nextNum}` });
                           setActiveAddSubAgendaId(agenda.id);
                           setShowAgendaForm(false);
                         }}
@@ -684,13 +706,16 @@ export default function MeetingDetailPage() {
                     <span className="text-sm text-gray-400 italic">- ไม่มีวาระย่อย -</span>
                   </div>
                 )}
+              </div>
 
                 {/* Inline Add Sub-agenda Form */}
-                {activeAddSubAgendaId === agenda.id && (
-                  <div className="border-t border-gray-200 bg-blue-50/30 p-4">
+                {targetRenderFormId === agenda.id && (
+                  <div className={`border border-blue-200 rounded-lg bg-blue-50/30 p-4 ${!isMainAgenda ? 'ml-8' : ''}`}>
                     <form onSubmit={handleAddAgenda} className="space-y-4">
                       <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-semibold text-blue-800 text-sm">เพิ่มวาระย่อย</h4>
+                        <h4 className="font-semibold text-blue-800 text-sm flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> เพิ่มวาระย่อย
+                        </h4>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -702,7 +727,7 @@ export default function MeetingDetailPage() {
                             value={newAgenda.agenda_no}
                             onChange={e => setNewAgenda({...newAgenda, agenda_no: e.target.value})}
                             placeholder="เช่น 1.1"
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white"
                           />
                         </div>
                         <div className="md:col-span-3">
@@ -713,7 +738,7 @@ export default function MeetingDetailPage() {
                             value={newAgenda.title}
                             onChange={e => setNewAgenda({...newAgenda, title: e.target.value})}
                             placeholder="ระบุชื่อวาระการประชุม"
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white"
                           />
                         </div>
                       </div>
@@ -725,7 +750,7 @@ export default function MeetingDetailPage() {
                           value={newAgenda.description}
                           onChange={e => setNewAgenda({...newAgenda, description: e.target.value})}
                           placeholder="รายละเอียดของวาระนี้"
-                          className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white"
                         />
                       </div>
 
@@ -733,13 +758,13 @@ export default function MeetingDetailPage() {
                         <button 
                           type="button" 
                           onClick={() => setActiveAddSubAgendaId(null)} 
-                          className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 bg-white"
+                          className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 bg-white shadow-sm"
                         >
                           ยกเลิก
                         </button>
                         <button 
                           type="submit" 
-                          className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-1"
+                          className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-1 shadow-sm"
                         >
                           <Save className="w-4 h-4" />
                           บันทึกวาระ
@@ -750,7 +775,7 @@ export default function MeetingDetailPage() {
                 )}
               </div>
             );
-          })
+          })})()
           )}
 
           {/* Add Agenda Form Modal or Inline */}

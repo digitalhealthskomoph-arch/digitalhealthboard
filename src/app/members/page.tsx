@@ -9,7 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function MembersPage() {
   const { user } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Document modal states
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [newDoc, setNewDoc] = useState({ title: '', url: '' });
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   
   useEffect(() => {
     const fetchMembers = async () => {
@@ -22,8 +29,17 @@ export default function MembersPage() {
         if (!error && data) {
           setMembers(data);
         }
+
+        const { data: docsData } = await supabase
+          .from('resources')
+          .select('*')
+          .eq('category', 'member_document')
+          .order('created_at', { ascending: false });
+        
+        if (docsData) setDocuments(docsData);
+        
       } catch (err) {
-        console.error('Error fetching members:', err);
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
@@ -41,6 +57,82 @@ export default function MembersPage() {
     } catch (err) {
       console.error('Error deleting member:', err);
       alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+    }
+  };
+
+  const handleAddDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoc.title) return alert('กรุณาระบุชื่อเอกสาร');
+    
+    setUploadingDoc(true);
+    try {
+      let finalUrl = newDoc.url;
+      
+      if (fileToUpload) {
+        // Upload to Supabase Storage 'documents' bucket
+        const fileExt = fileToUpload.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `members/${fileName}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('documents')
+          .upload(filePath, fileToUpload);
+          
+        if (uploadError) {
+          console.error(uploadError);
+          // If bucket doesn't exist, fallback to warning
+          if (uploadError.message.includes('Bucket not found')) {
+            alert('ไม่พบ Storage Bucket ชื่อ "documents" ใน Supabase \nกรุณาไปที่ Supabase > Storage > สร้าง Bucket ชื่อ "documents" (ตั้งเป็น Public)');
+            setUploadingDoc(false);
+            return;
+          }
+          throw uploadError;
+        }
+        
+        const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+        finalUrl = publicUrlData.publicUrl;
+      }
+      
+      if (!finalUrl) {
+        alert('กรุณาอัปโหลดไฟล์ หรือใส่ลิงก์เอกสาร');
+        setUploadingDoc(false);
+        return;
+      }
+      
+      const { data: insertedDoc, error } = await supabase
+        .from('resources')
+        .insert([{
+          title: newDoc.title,
+          url: finalUrl,
+          category: 'member_document',
+          description: fileToUpload ? fileToUpload.name : 'Link'
+        }])
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setDocuments([insertedDoc, ...documents]);
+      setShowDocModal(false);
+      setNewDoc({ title: '', url: '' });
+      setFileToUpload(null);
+    } catch (error) {
+      console.error('Error adding document:', error);
+      alert('เกิดข้อผิดพลาดในการเพิ่มเอกสาร');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!window.confirm('ยืนยันการลบเอกสารนี้?')) return;
+    try {
+      const { error } = await supabase.from('resources').delete().eq('id', id);
+      if (error) throw error;
+      setDocuments(documents.filter(d => d.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการลบเอกสาร');
     }
   };
 
@@ -180,24 +272,127 @@ export default function MembersPage() {
           เอกสารที่เกี่ยวข้อง
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="border border-gray-200 rounded-lg p-4 flex items-start gap-3 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group">
-            <div className="bg-red-100 p-2 rounded text-red-600 shrink-0">
-              <Download className="w-5 h-5" />
+          {documents.map(doc => (
+            <div key={doc.id} className="relative border border-gray-200 rounded-lg p-4 flex items-start gap-3 hover:border-blue-300 hover:shadow-sm transition-all group">
+              <div className="bg-blue-100 p-2 rounded text-blue-600 shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors block truncate" title={doc.title}>
+                  {doc.title}
+                </a>
+                <p className="text-xs text-gray-500 mt-1 truncate">{doc.description || 'เอกสารแนบ'}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  อัปเดตเมื่อ: {new Date(doc.created_at).toLocaleDateString('th-TH')}
+                </p>
+              </div>
+              {user && (
+                <button 
+                  onClick={() => handleDeleteDocument(doc.id)}
+                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="ลบเอกสาร"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                </button>
+              )}
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">คำสั่งแต่งตั้งคณะกรรมการสุขภาพดิจิทัล.pdf</p>
-              <p className="text-xs text-gray-500 mt-1">อัปเดตเมื่อ: 10 ม.ค. 2569</p>
-            </div>
-          </div>
+          ))}
           
           {user && (
-            <button className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-500 hover:text-blue-600">
+            <button 
+              onClick={() => setShowDocModal(true)}
+              className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-500 hover:text-blue-600 min-h-[100px]"
+            >
               <Plus className="w-6 h-6" />
-              <span className="text-sm font-medium">อัปโหลดเอกสารอ้างอิง</span>
+              <span className="text-sm font-medium">เพิ่มเอกสารอ้างอิง</span>
             </button>
           )}
         </div>
       </div>
+
+      {/* Upload Document Modal */}
+      {showDocModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">เพิ่มเอกสารที่เกี่ยวข้อง</h3>
+              <button onClick={() => {
+                setShowDocModal(false);
+                setFileToUpload(null);
+                setNewDoc({title:'', url:''});
+              }} className="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddDocument}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเอกสาร *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newDoc.title}
+                    onChange={e => setNewDoc({...newDoc, title: e.target.value})}
+                    placeholder="เช่น คำสั่งแต่งตั้งคณะกรรมการ"
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">อัปโหลดไฟล์</label>
+                  <input
+                    type="file"
+                    onChange={e => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setFileToUpload(e.target.files[0]);
+                        setNewDoc({...newDoc, url: ''}); // clear URL if file is chosen
+                      }
+                    }}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">หมายเหตุ: ต้องสร้าง Storage Bucket ชื่อ `documents` แบบ Public ใน Supabase ก่อน</p>
+                </div>
+
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">หรือใช้ลิงก์ภายนอก</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ลิงก์เอกสาร (Google Drive, ฯลฯ)</label>
+                  <input
+                    type="url"
+                    value={newDoc.url}
+                    onChange={e => setNewDoc({...newDoc, url: e.target.value})}
+                    placeholder="https://..."
+                    disabled={!!fileToUpload}
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100"
+                  />
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowDocModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit"
+                  disabled={uploadingDoc}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {uploadingDoc ? 'กำลังบันทึก...' : 'บันทึกเอกสาร'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
