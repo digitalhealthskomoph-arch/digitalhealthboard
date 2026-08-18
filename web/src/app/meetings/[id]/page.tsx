@@ -32,6 +32,12 @@ export default function MeetingDetailPage() {
   const [activeResolutionAgendaId, setActiveResolutionAgendaId] = useState<string | null>(null);
   const [newResolution, setNewResolution] = useState({ resolution_type: 'รับทราบ', detail: '' });
 
+  // States for importing follow-up agendas
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [pastMeetings, setPastMeetings] = useState<any[]>([]);
+  const [selectedPastMeeting, setSelectedPastMeeting] = useState<string>('');
+  const [importing, setImporting] = useState(false);
+
   useEffect(() => {
     fetchMeetingData();
   }, [id]);
@@ -49,25 +55,47 @@ export default function MeetingDetailPage() {
       if (mError) throw mError;
       setMeeting(meetingData);
 
-      // Fetch agendas with resolutions
+      // Fetch agendas
       const { data: agendasData, error: aError } = await supabase
         .from('agendas')
-        .select(`
-          *,
-          resolutions (*)
-        `)
+        .select('*')
         .eq('meeting_id', id)
         .order('agenda_no', { ascending: true });
         
       if (aError) throw aError;
-      setAgendas(agendasData || []);
       
-      // Default next agenda_no (simple guess)
-      if (agendasData && agendasData.length > 0) {
-        setNewAgenda(prev => ({ ...prev, agenda_no: String(agendasData.length + 1) }));
+      // เรียงลำดับ agenda_no แบบตัวเลข (เช่น 1, 2, 2.1, 10, 4.2.1)
+      const sortedAgendas = (agendasData || []).sort((a, b) => {
+        const aParts = (a.agenda_no || '').split('.').map(Number);
+        const bParts = (b.agenda_no || '').split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aVal = aParts[i] || 0;
+          const bVal = bParts[i] || 0;
+          if (aVal !== bVal) return aVal - bVal;
+        }
+        return 0;
+      });
+
+      setAgendas(sortedAgendas);
+      
+      // Default next agenda_no (simple guess based on last item)
+      if (sortedAgendas.length > 0) {
+        const lastAgenda = sortedAgendas[sortedAgendas.length - 1];
+        const parts = (lastAgenda.agenda_no || '').split('.');
+        parts[parts.length - 1] = String(Number(parts[parts.length - 1] || 0) + 1);
+        setNewAgenda(prev => ({ ...prev, agenda_no: parts.join('.') }));
       } else {
         setNewAgenda(prev => ({ ...prev, agenda_no: '1' }));
       }
+
+      // Fetch past meetings for import feature
+      const { data: pastData } = await supabase
+        .from('meetings')
+        .select('id, title, meeting_no, date')
+        .neq('id', id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (pastData) setPastMeetings(pastData);
 
     } catch (error) {
       console.error('Error fetching meeting:', error);
@@ -76,14 +104,14 @@ export default function MeetingDetailPage() {
     }
   };
 
-  const handleAddAgenda = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddAgenda = async (e?: React.FormEvent, presetAgendaNo?: string) => {
+    if (e) e.preventDefault();
     try {
       const { error } = await supabase
         .from('agendas')
         .insert([{
           meeting_id: id,
-          agenda_no: newAgenda.agenda_no,
+          agenda_no: presetAgendaNo || newAgenda.agenda_no,
           title: newAgenda.title,
           description: newAgenda.description,
           resolution_summary: newAgenda.resolution_summary,
@@ -93,7 +121,7 @@ export default function MeetingDetailPage() {
       if (error) throw error;
       
       setNewAgenda({ 
-        agenda_no: String(agendas.length + 2), 
+        agenda_no: '', 
         title: '', 
         description: '',
         resolution_summary: '',
@@ -105,6 +133,67 @@ export default function MeetingDetailPage() {
     } catch (error) {
       console.error('Error adding agenda:', error);
       alert('เกิดข้อผิดพลาดในการเพิ่มวาระ');
+    }
+  };
+
+  const handleCreateStandardAgendas = async () => {
+    setLoading(true);
+    try {
+      const standardAgendas = [
+        { meeting_id: id, agenda_no: '1', title: 'เรื่องจากประธาน' },
+        { meeting_id: id, agenda_no: '2', title: 'รับรองรายงานการประชุม' },
+        { meeting_id: id, agenda_no: '3', title: 'เรื่องสืบเนื่อง' },
+        { meeting_id: id, agenda_no: '4', title: 'เรื่องเพื่อทราบ/เพื่อพิจารณา' },
+        { meeting_id: id, agenda_no: '5', title: 'วาระอื่นๆ' },
+      ];
+      
+      const { error } = await supabase.from('agendas').insert(standardAgendas);
+      if (error) throw error;
+      
+      fetchMeetingData();
+    } catch (error) {
+      console.error('Error creating standard agendas:', error);
+      alert('เกิดข้อผิดพลาดในการสร้างวาระมาตรฐาน');
+      setLoading(false);
+    }
+  };
+
+  const handleImportPastAgendas = async () => {
+    if (!selectedPastMeeting) return;
+    setImporting(true);
+    try {
+      // ดึงวาระจากครั้งก่อน (เช่น เอามาเฉพาะเรื่องสืบเนื่อง หรือเอามาทั้งหมด)
+      // ในที่นี้สมมติว่าดึงวาระทั้งหมดมาสร้างเป็นวาระย่อยของวาระที่ 3
+      const { data: pastAgendas, error: fetchErr } = await supabase
+        .from('agendas')
+        .select('*')
+        .eq('meeting_id', selectedPastMeeting)
+        .order('agenda_no', { ascending: true });
+        
+      if (fetchErr) throw fetchErr;
+      
+      if (pastAgendas && pastAgendas.length > 0) {
+        const importedAgendas = pastAgendas.map((pa, index) => ({
+          meeting_id: id,
+          agenda_no: `3.${index + 1}`,
+          title: `(สืบเนื่อง) ${pa.title}`,
+          description: pa.resolution_summary || pa.description,
+          resolution_summary: '',
+          attachment_url: pa.attachment_url,
+          responsible_person: pa.responsible_person
+        }));
+        
+        const { error: insertErr } = await supabase.from('agendas').insert(importedAgendas);
+        if (insertErr) throw insertErr;
+      }
+      
+      setShowImportModal(false);
+      fetchMeetingData();
+    } catch (error) {
+      console.error('Error importing agendas:', error);
+      alert('เกิดข้อผิดพลาดในการนำเข้าวาระ');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -227,14 +316,25 @@ export default function MeetingDetailPage() {
         <div className="p-6 space-y-6">
           {agendas.length === 0 ? (
             <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-              <p className="text-gray-500">ยังไม่มีวาระการประชุม</p>
+              <p className="text-gray-500 mb-4">ยังไม่มีวาระการประชุม</p>
               {user && (
-                <button 
-                  onClick={() => setShowAgendaForm(true)}
-                  className="mt-3 text-sm text-blue-600 font-medium hover:underline"
-                >
-                  + เพิ่มวาระแรก
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button 
+                    onClick={handleCreateStandardAgendas}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    ใช้โครงสร้างวาระมาตรฐาน 5 วาระ
+                  </button>
+                  <span className="text-gray-400 text-sm">หรือ</span>
+                  <button 
+                    onClick={() => setShowAgendaForm(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    เพิ่มวาระเอง
+                  </button>
+                </div>
               )}
             </div>
           ) : (
@@ -242,8 +342,17 @@ export default function MeetingDetailPage() {
               <div key={agenda.id} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-base">
+                    <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                       วาระที่ {agenda.agenda_no} {agenda.title}
+                      {agenda.title === 'เรื่องสืบเนื่อง' && user && (
+                        <button 
+                          onClick={() => setShowImportModal(true)}
+                          className="ml-2 inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 transition-colors"
+                        >
+                          <Download className="w-3 h-3" />
+                          นำเข้าวาระจากการประชุมก่อนหน้า
+                        </button>
+                      )}
                     </h3>
                     {agenda.description && (
                       <p className="text-sm text-gray-600 mt-1">{agenda.description}</p>
@@ -251,7 +360,17 @@ export default function MeetingDetailPage() {
                   </div>
                   {user && (
                     <div className="flex gap-2">
-                      <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500">
+                      <button 
+                        onClick={() => {
+                          setNewAgenda({ ...newAgenda, agenda_no: `${agenda.agenda_no}.1` });
+                          setShowAgendaForm(true);
+                        }}
+                        className="text-gray-400 hover:text-blue-500"
+                        title="เพิ่มวาระย่อย"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deleteAgenda(agenda.id)} className="text-gray-400 hover:text-red-500" title="ลบวาระ">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -468,6 +587,55 @@ export default function MeetingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">นำเข้าวาระสืบเนื่อง</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                เลือกการประชุมก่อนหน้าเพื่อนำเข้าวาระทั้งหมดมาเป็นวาระสืบเนื่อง (วาระที่ 3) ในการประชุมนี้
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เลือกการประชุม</label>
+                <select
+                  value={selectedPastMeeting}
+                  onChange={e => setSelectedPastMeeting(e.target.value)}
+                  className="w-full text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">-- กรุณาเลือกการประชุม --</option>
+                  {pastMeetings.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.meeting_no} - {m.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+              <button 
+                onClick={() => setShowImportModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={handleImportPastAgendas}
+                disabled={!selectedPastMeeting || importing}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {importing ? 'กำลังนำเข้า...' : 'นำเข้าวาระ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
