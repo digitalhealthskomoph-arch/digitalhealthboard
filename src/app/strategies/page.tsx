@@ -25,6 +25,7 @@ export default function StrategicBookPage() {
       let { data, error } = await supabase
         .from('strategic_plans')
         .select('*')
+        .order('created_at', { ascending: true })
         .limit(1)
         .single();
 
