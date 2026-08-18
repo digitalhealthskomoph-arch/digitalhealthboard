@@ -8,6 +8,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     objective_id: objectiveId || '',
+    code: '',
     name: '',
     description: '',
     readiness_status: 'พร้อมวัด',
@@ -43,6 +44,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
       if (data) {
         setFormData({
           objective_id: data.objective_id || objectiveId || '',
+          code: data.code || '',
           name: data.name || '',
           description: data.description || '',
           readiness_status: data.readiness_status || 'พร้อมวัด',
@@ -128,11 +130,15 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, objective
                   <select name="objective_id" value={formData.objective_id} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
                     <option value="">-- ไม่ระบุ / ไม่ผูกกับเป้าประสงค์ --</option>
                     {objectives.map(obj => (
-                      <option key={obj.id} value={obj.id}>{obj.name}</option>
+                      <option key={obj.id} value={obj.id}>{obj.code ? `[${obj.code}] ` : ''}{obj.name}</option>
                     ))}
                   </select>
                 </div>
-                <div className="md:col-span-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">รหัสตัวชี้วัด (เช่น K1)</label>
+                  <input name="code" value={formData.code} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="รหัส K..." />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อตัวชี้วัด</label>
                   <input name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
