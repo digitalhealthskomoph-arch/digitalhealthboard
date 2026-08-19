@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, Edit2, ChevronDown, ChevronRight, FileSearch, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, ChevronDown, ChevronRight, ChevronUp, FileSearch, Trash2, Save, X } from 'lucide-react';
 import KPIFormModal from './KPIFormModal';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -37,9 +37,9 @@ export default function TabStrategies({ planData }: { planData: any }) {
     setLoading(true);
     try {
       const [stratRes, objRes, kpiRes] = await Promise.all([
-        supabase.from('strategies').select('*').order('name'),
-        supabase.from('objectives').select('*').order('created_at'),
-        supabase.from('kpis').select('*').order('created_at')
+        supabase.from('strategies').select('*').order('order_index', { ascending: true }).order('name'),
+        supabase.from('objectives').select('*').order('order_index', { ascending: true }).order('created_at'),
+        supabase.from('kpis').select('*').order('order_index', { ascending: true }).order('created_at')
       ]);
 
       if (stratRes.data) {
@@ -55,6 +55,40 @@ export default function TabStrategies({ planData }: { planData: any }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- Reorder helpers ---
+  const swapOrderIndex = async (table: string, a: any, b: any) => {
+    await Promise.all([
+      supabase.from(table).update({ order_index: b.order_index }).eq('id', a.id),
+      supabase.from(table).update({ order_index: a.order_index }).eq('id', b.id),
+    ]);
+  };
+
+  const moveStrategy = async (stratId: string, dir: 'up' | 'down') => {
+    const idx = strategies.findIndex(s => s.id === stratId);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= strategies.length) return;
+    await swapOrderIndex('strategies', strategies[idx], strategies[swapIdx]);
+    await fetchData();
+  };
+
+  const moveObjective = async (objId: string, stratId: string, dir: 'up' | 'down') => {
+    const stratObjs = objectives.filter(o => o.strategy_id === stratId);
+    const idx = stratObjs.findIndex(o => o.id === objId);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= stratObjs.length) return;
+    await swapOrderIndex('objectives', stratObjs[idx], stratObjs[swapIdx]);
+    await fetchData();
+  };
+
+  const moveKpi = async (kpiId: string, objId: string | null, stratId: string, dir: 'up' | 'down') => {
+    const group = kpis.filter(k => objId ? k.objective_id === objId : (k.strategy_id === stratId && !k.objective_id));
+    const idx = group.findIndex(k => k.id === kpiId);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= group.length) return;
+    await swapOrderIndex('kpis', group[idx], group[swapIdx]);
+    await fetchData();
   };
 
   const toggleExpand = (id: string) => {
@@ -123,10 +157,12 @@ export default function TabStrategies({ planData }: { planData: any }) {
       if (objForm.id) {
         await supabase.from('objectives').update({ name: objForm.name, description: objForm.description }).eq('id', objForm.id);
       } else {
+        const stratObjs = objectives.filter(o => o.strategy_id === objForm.strategy_id);
         await supabase.from('objectives').insert([{
           strategy_id: objForm.strategy_id,
           name: objForm.name,
-          description: objForm.description
+          description: objForm.description,
+          order_index: stratObjs.length
         }]);
       }
       setShowObjForm(false);
@@ -219,9 +255,31 @@ export default function TabStrategies({ planData }: { planData: any }) {
                   {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronRight className="w-5 h-5 text-gray-500" />}
                   <h3 className={`font-bold text-lg ${currentTheme.text}`}>[{stratCode}] {strat.name}</h3>
                 </div>
-                <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md text-gray-500 border">
-                  {stratObjs.length} เป้าประสงค์
-                </span>
+                <div className="flex items-center gap-2">
+                  {user && (
+                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => moveStrategy(strat.id, 'up')}
+                        disabled={sIndex === 0}
+                        className="p-1 rounded bg-white/70 border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="เลื่อนขึ้น"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                      <button
+                        onClick={() => moveStrategy(strat.id, 'down')}
+                        disabled={sIndex === strategies.length - 1}
+                        className="p-1 rounded bg-white/70 border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="เลื่อนลง"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md text-gray-500 border">
+                    {stratObjs.length} เป้าประสงค์
+                  </span>
+                </div>
               </div>
 
               {/* Content */}
@@ -332,17 +390,35 @@ export default function TabStrategies({ planData }: { planData: any }) {
                               <span className={`text-xs font-bold ${currentTheme.objText} uppercase mr-2`}>เป้าประสงค์</span>
                               <span className="font-bold text-gray-900 text-sm">[{objCode}] {obj.name}</span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 items-center">
                               {user && (
-                                <button 
-                                  onClick={() => {
-                                    setObjForm({ id: obj.id, strategy_id: strat.id, name: obj.name || '', description: obj.description || '' });
-                                    setShowObjForm(true);
-                                  }}
-                                  className={`text-xs ${currentTheme.objText} flex items-center gap-1 hover:underline`}
-                                >
-                                  <Edit2 className="w-3 h-3" /> แก้ไข
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => moveObjective(obj.id, strat.id, 'up')}
+                                    disabled={oIndex === 0}
+                                    className="p-1 rounded bg-white/70 border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="เลื่อนขึ้น"
+                                  >
+                                    <ChevronUp className="w-3 h-3 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={() => moveObjective(obj.id, strat.id, 'down')}
+                                    disabled={oIndex === stratObjs.length - 1}
+                                    className="p-1 rounded bg-white/70 border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="เลื่อนลง"
+                                  >
+                                    <ChevronDown className="w-3 h-3 text-gray-500" />
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setObjForm({ id: obj.id, strategy_id: strat.id, name: obj.name || '', description: obj.description || '' });
+                                      setShowObjForm(true);
+                                    }}
+                                    className={`text-xs ${currentTheme.objText} flex items-center gap-1 hover:underline ml-1`}
+                                  >
+                                    <Edit2 className="w-3 h-3" /> แก้ไข
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -376,18 +452,26 @@ export default function TabStrategies({ planData }: { planData: any }) {
                                         <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2571 || '-'}</td>
                                         <td className="px-4 py-3 text-center text-gray-600 text-xs">{kpi.target_2572 || '-'}</td>
                                         <td className="px-4 py-3 text-center">
-                                          <button 
-                                            onClick={() => {
-                                              setEditingKpiId(kpi.id);
-                                              setTargetStratId(strat.id);
-                                              setTargetObjId(obj.id);
-                                              setKpiModalOpen(true);
-                                            }}
-                                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md mx-auto block"
-                                            title="ดู/แก้ไข Data Dictionary"
-                                          >
-                                            <FileSearch className="w-4 h-4" />
-                                          </button>
+                                          <div className="flex items-center justify-center gap-1">
+                                            {user && (
+                                              <>
+                                                <button onClick={() => moveKpi(kpi.id, obj.id, strat.id, 'up')} disabled={kIndex === 0} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" title="เลื่อนขึ้น"><ChevronUp className="w-3 h-3 text-gray-500"/></button>
+                                                <button onClick={() => moveKpi(kpi.id, obj.id, strat.id, 'down')} disabled={kIndex === objKpis.length - 1} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" title="เลื่อนลง"><ChevronDown className="w-3 h-3 text-gray-500"/></button>
+                                              </>
+                                            )}
+                                            <button 
+                                              onClick={() => {
+                                                setEditingKpiId(kpi.id);
+                                                setTargetStratId(strat.id);
+                                                setTargetObjId(obj.id);
+                                                setKpiModalOpen(true);
+                                              }}
+                                              className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md"
+                                              title="ดู/แก้ไข Data Dictionary"
+                                            >
+                                              <FileSearch className="w-4 h-4" />
+                                            </button>
+                                          </div>
                                         </td>
                                       </tr>
                                       )
