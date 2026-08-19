@@ -54,12 +54,12 @@ export default function Home() {
               <Target className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">แผนยุทธศาสตร์</p>
+              <p className="text-sm font-medium text-gray-500">แผนสุขภาพดิจิทัล</p>
               <h3 className="text-2xl font-bold text-gray-900">3 ปี</h3>
             </div>
           </div>
           <Link href="/strategies" className="mt-auto text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center">
-            จัดการแผนยุทธศาสตร์ &rarr;
+            จัดการแผนสุขภาพดิจิทัล &rarr;
           </Link>
         </div>
 
