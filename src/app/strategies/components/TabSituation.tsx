@@ -26,11 +26,13 @@ export default function TabSituation({ planData, onUpdate }: { planData: any, on
         .select(`
           name, 
           description,
+          baseline,
           target_value,
           strategy_id,
           strategies(name)
         `)
-        .not('description', 'is', null);
+        .order('order_index', { ascending: true })
+        .order('id', { ascending: true });
       if (!error && data) {
         setBaselineData(data);
       }
@@ -153,20 +155,17 @@ export default function TabSituation({ planData, onUpdate }: { planData: any, on
           {baselineData.length > 0 ? (
             <div className="space-y-4">
               {baselineData.map((kpi, idx) => {
-                // Extract baseline from description text (temporary fallback since we added dictionary fields but old data used description)
-                let bText = kpi.description;
-                if (bText && bText.includes('Baseline:')) {
-                  bText = bText.split('Baseline:')[1].split('\n')[0].trim();
-                }
+                // Use baseline field if it exists, otherwise show dash
+                let bText = kpi.baseline || '-';
                 return (
                   <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div>
+                    <div className="flex-1">
                       <div className="text-xs font-semibold text-blue-600 mb-1">{kpi.strategies?.name}</div>
                       <div className="font-medium text-gray-900 text-sm">{kpi.name}</div>
                     </div>
-                    <div className="bg-gray-100 px-3 py-1.5 rounded-md text-sm whitespace-nowrap min-w-[150px]">
+                    <div className="bg-gray-100 px-3 py-2 rounded-md text-sm min-w-[150px] max-w-full sm:max-w-xs">
                       <span className="text-gray-500 text-xs block mb-0.5">Baseline</span>
-                      <span className="font-semibold text-gray-800">{bText || '-'}</span>
+                      <span className="font-semibold text-gray-800 break-words">{bText}</span>
                     </div>
                   </div>
                 );

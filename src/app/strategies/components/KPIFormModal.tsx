@@ -14,6 +14,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategie
     objective_id: objectiveId || '',
     name: '',
     description: '',
+    baseline: '',
     readiness_status: 'พร้อมวัด',
     op_definition: '',
     calc_formula: '',
@@ -50,6 +51,7 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategie
           objective_id: data.objective_id || objectiveId || '',
           name: data.name || '',
           description: data.description || '',
+          baseline: data.baseline || '',
           readiness_status: data.readiness_status || 'พร้อมวัด',
           op_definition: data.op_definition || '',
           calc_formula: data.calc_formula || '',
@@ -148,6 +150,10 @@ export default function KPIFormModal({ kpiId, strategyId, objectiveId, strategie
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อตัวชี้วัด</label>
                   <input name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ข้อมูลพื้นฐาน (Baseline)</label>
+                  <input name="baseline" value={formData.baseline} onChange={handleChange} placeholder="เช่น 70%, 10 ครั้ง/เดือน" className="w-full border border-gray-300 bg-white p-2.5 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">สถานะความพร้อมวัด</label>
