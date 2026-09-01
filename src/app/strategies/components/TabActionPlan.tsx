@@ -38,7 +38,7 @@ export default function TabActionPlan({ planData }: { planData: any }) {
       // Fetch action plans
       const { data: plans } = await supabase
         .from('action_plans')
-        .select(`*, strategies(name)`)
+        .select(`*, strategies(name, order_index)`)
         .order('created_at');
       
       if (plans) setActionPlans(plans);
@@ -238,7 +238,7 @@ export default function TabActionPlan({ planData }: { planData: any }) {
               actionPlans.map((plan) => (
                 <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-blue-600 font-medium whitespace-nowrap">
-                    {plan.strategies?.name?.split(' ')[1] || plan.strategies?.name}
+                    {plan.strategies?.order_index ? `ยุทธศาสตร์ที่ ${plan.strategies.order_index}` : plan.strategies?.name}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{plan.activity_name}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{plan.responsible_person || '-'}</td>

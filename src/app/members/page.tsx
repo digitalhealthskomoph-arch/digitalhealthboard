@@ -8,6 +8,27 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function MembersPage() {
   const { user } = useAuth();
+
+  // Helper function to analyze duty text and map to strategy
+  const analyzeDutyStrategy = (text: string) => {
+    if (text.includes('Interoperability') || text.includes('Big Data') || text.includes('Data Analytics') || text.includes('ข้อมูลสุขภาพขนาดใหญ่') || text.includes('เชื่อมโยงได้')) {
+      return { id: 1, text: 'ยุทธศาสตร์ที่ 1: การเชื่อมโยงและบูรณาการข้อมูล', color: 'text-blue-600 bg-blue-50 border-blue-200' };
+    }
+    if (text.includes('Telemedicine') || text.includes('Smart Hospital') || text.includes('นวัตกรรมบริการสุขภาพ') || text.includes('PHR') || text.includes('ทางการแพทย์ทางไกล')) {
+      return { id: 2, text: 'ยุทธศาสตร์ที่ 2: บริการสุขภาพดิจิทัลเพื่อประชาชน', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
+    }
+    if (text.includes('Cyber Security') || text.includes('PDPA') || text.includes('ความมั่นคงปลอดภัย') || text.includes('Cloud')) {
+      return { id: 3, text: 'ยุทธศาสตร์ที่ 3: ความมั่นคงปลอดภัยไซเบอร์และ PDPA', color: 'text-rose-600 bg-rose-50 border-rose-200' };
+    }
+    if (text.includes('บุคลากร') || text.includes('กำลังคน') || text.includes('สมรรถนะด้านเทคโนโลยี')) {
+      return { id: 4, text: 'ยุทธศาสตร์ที่ 4: กำลังคนดิจิทัล', color: 'text-amber-600 bg-amber-50 border-amber-200' };
+    }
+    if (text.includes('ภาคีเครือข่าย') || text.includes('ติดตาม ประเมินผล') || text.includes('รายงานความก้าวหน้า') || text.includes('ขับเคลื่อนนโยบาย')) {
+      return { id: 5, text: 'ยุทธศาสตร์ที่ 5: ธรรมาภิบาลและภาคีเครือข่าย', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' };
+    }
+    return { id: 0, text: 'ยุทธศาสตร์ภาพรวม / ทั่วไป', color: 'text-gray-600 bg-gray-50 border-gray-200' };
+  };
+
   const [members, setMembers] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -447,8 +468,18 @@ export default function MembersPage() {
                 <div className="shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-sm">
                   {index + 1}
                 </div>
-                <div className="flex-1 text-sm text-gray-800 leading-relaxed pt-1.5 whitespace-pre-wrap">
-                  {duty.description}
+                <div className="flex-1 pt-1.5">
+                  <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap mb-2">
+                    {duty.description}
+                  </div>
+                  {(() => {
+                    const strategy = analyzeDutyStrategy(duty.description);
+                    return (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${strategy.color}`}>
+                        {strategy.text}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {user && (
                   <div className="shrink-0 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
