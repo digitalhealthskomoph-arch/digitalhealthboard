@@ -1,0 +1,37 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs at 04:00 UTC (11:00 AM Thailand time GMT+7) every Monday, Wednesday, and Friday
+    - cron: '0 4 * * 1,3,5'
+  workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+
+jobs:
+  ping-supabase:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keep-alive ping to Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://qmizczkkoizqskburrgd.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_pBu35ni4KVfjH6fQ99vutg_-yL2WyF8' }}
+        run: |
+          echo "========================================================"
+          echo "Sending keep-alive request to Supabase to prevent pause..."
+          echo "Timestamp: $(date -u)"
+          echo "Target URL: $SUPABASE_URL"
+          echo "========================================================"
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/strategic_plans?select=id&limit=1")
+
+          echo "HTTP Status Code: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Success: Supabase received the query and is kept active!"
+          else
+            echo "❌ Failed: Unexpected HTTP status $HTTP_STATUS from Supabase"
+            exit 1
+          fi
