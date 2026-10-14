@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Target, Users, Presentation, Link as LinkIcon, X } from 'lucide-react';
+import { LayoutDashboard, Target, Users, Presentation, Link as LinkIcon, BarChart3, X } from 'lucide-react';
 
 const navigation = [
   { name: 'แดชบอร์ด', href: '/', icon: LayoutDashboard },
   { name: 'แผนสุขภาพดิจิทัล', href: '/strategies', icon: Target },
+  { name: 'ตัวชี้วัดและข้อมูล', href: '/kpis', icon: BarChart3 },
   { name: 'การประชุมคณะกรรมการ', href: '/meetings', icon: Presentation },
   { name: 'ข้อมูลคณะกรรมการ', href: '/members', icon: Users },
   { name: 'แหล่งข้อมูลและลิงก์', href: '/resources', icon: LinkIcon },

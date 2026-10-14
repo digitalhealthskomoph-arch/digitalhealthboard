@@ -102,12 +102,12 @@ export default function Home() {
               <Activity className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">สถานะตัวชี้วัด</p>
-              <h3 className="text-2xl font-bold text-gray-900">รอดำเนินการ</h3>
+              <p className="text-sm font-medium text-gray-500">ตัวชี้วัด & ฐานข้อมูล</p>
+              <h3 className="text-2xl font-bold text-gray-900">ทะเบียนระบบ</h3>
             </div>
           </div>
-          <Link href="/strategies" className="mt-auto text-sm text-orange-600 font-medium hover:text-orange-700 flex items-center">
-            อัปเดตความคืบหน้า &rarr;
+          <Link href="/kpis" className="mt-auto text-sm text-orange-600 font-medium hover:text-orange-700 flex items-center">
+            สำรวจข้อมูลและตัวชี้วัด &rarr;
           </Link>
         </div>
       </div>
